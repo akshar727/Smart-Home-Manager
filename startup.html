@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Blinds Manager Setup Portal</title>
+    <style>
+      * {
+        font-family: sans-serif;
+      }
+
+      #submit {
+        background-color: hwb(129 20% 15%);
+        margin-top: 15px;
+        width: 120px;
+        border-radius: 5px;
+        border: none;
+        height: 30px;
+        font-size: 22px;
+        transition: all 300ms;
+      }
+      #submit:hover {
+        cursor: pointer !important;
+        background-color: hwb(129 23% 6%);
+      }
+      .center {
+        text-align: center;
+      }
+
+      .box {
+        border: 2px solid black;
+        border-radius: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="center">
+      <h1>Welcome to the Blinds Manager Setup Portal!</h1>
+      <h3>
+        Please fill out your wifi credentials so I can join it! (Refresh if you
+        can't find it)
+      </h3>
+      <form>
+        <label for="ssid">Network Name:</label>
+        <select
+          style="margin-left: 25px; min-width: 100px"
+          name="ssid"
+          id="ssid"
+          required
+          class="box"
+        >
+          <option name="illegal">...</option>
+          {{options}}
+        </select>
+        <br />
+        <label for="password">Password:</label>
+        <input
+          style="margin-left: 15px; min-width: 100px"
+          name="password"
+          id="password"
+          required
+          class="box"
+        />
+        <br />
+        <button type="button" id="submit" onclick="javascript:check()">
+          Connect
+        </button>
+        <script>
+          function check() {
+            var ssid = document.getElementById("ssid").value;
+            var password = document.getElementById("password").value;
+            if (ssid === "...") {
+              alert("Please select a network name.");
+              return;
+            }
+            if (password === "") {
+              alert("Please enter a password.");
+              return;
+            }
+            fetch("/check", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                ssid: ssid,
+                password: password,
+              }),
+            });
+          }
+        </script>
+      </form>
+    </div>
+  </body>
+</html>

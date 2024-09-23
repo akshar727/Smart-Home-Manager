@@ -1,0 +1,230 @@
+:root {
+  --primary-color: #2f78ff;
+}
+* {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+#app {
+  /* make it flex and make it so that each row has 4 boxes */
+
+  /* add some padding and margin */
+  padding: 20px;
+  margin: 0;
+  max-width: 800px;
+  /* add spacing between each box */
+}
+
+.devices {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+#main {
+  position: relative;
+  left: calc(80px + 1%);
+  top: 0;
+  min-height: 100vh;
+  width: calc(100% - calc(80px + 1%));
+  transition: all 0.5s ease;
+}
+
+.device {
+  /* add some padding and margin */
+  padding: 20px;
+  margin: 0;
+  /* add a border */
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  /* make it flex */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  /* make each box have the exact same size */
+  flex: 1;
+  /* make it slightly bigger */
+  min-width: 200px;
+  min-height: 180px;
+  /* add a shadow */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.op-btn {
+  /* add some padding */
+  padding: 10px;
+  /* add some margin */
+  margin: 10px 0;
+  /* add a border */
+  border: 1px solid #c9daf9;
+  border-radius: 5px;
+  /* add a background color */
+  background-color: var(--primary-color);
+  color: #fff;
+  min-width: 4.5rem;
+  /* add a hover effect */
+  transition: background-color 0.3s;
+  display: flex;
+  gap: 10px;
+  flex-wrap: nowrap;
+  font-size: 0.9rem;
+}
+/* .op-btn > i {
+  font-size: 1.2rem;
+} */
+.op-btn:hover {
+  background-color: #4787fd;
+  cursor: pointer;
+}
+
+.sp {
+  display: flex;
+  justify-content: space-around;
+  gap: 2em;
+}
+
+.category-title {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 80px;
+  background-color: var(--primary-color);
+  padding: 0.4rem 0.8rem;
+  transition: all 0.5s ease;
+  z-index: 2;
+}
+
+.sidebar.active ~ #main {
+  width: calc(100% - calc(250px + 1%));
+  left: calc(250px + 1%);
+  transition: all 0.5s ease;
+}
+
+.sidebar.active {
+  width: 250px;
+}
+
+.sidebar #btn {
+  position: absolute;
+  color: #fff;
+  top: 0.4rem;
+  left: 50%;
+  font-size: 1.2rem;
+  line-height: 50px;
+  transform: translateX(-50%);
+  cursor: pointer;
+  transition: all 0.5s ease;
+}
+
+.sidebar.active #btn {
+  left: 90%;
+  transition: all 0.5s ease;
+}
+
+.sidebar ul li {
+  position: relative;
+  list-style: none;
+  height: 50px;
+  width: 90%;
+  margin: 0.8rem auto;
+  line-height: 50px;
+}
+
+.sidebar ul li a {
+  color: #fff;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  border-radius: 0.8rem;
+}
+
+.sidebar ul li:hover a {
+  background-color: #fff;
+  color: #2f78ff;
+}
+.nav-item:hover,
+.siderbar.active .tooltip:hover {
+  cursor: pointer !important;
+}
+
+.sidebar .tooltip:hover {
+  cursor: initial;
+}
+
+.sidebar .top .logo {
+  color: #fff;
+  display: flex;
+  height: 50px;
+  width: 100%;
+  align-items: center;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.sidebar.active .top .logo {
+  opacity: 1;
+}
+
+.top .logo i {
+  font-size: 2rem;
+  margin-right: 5px;
+}
+
+.sidebar p {
+  opacity: 0;
+}
+
+.sidebar.sidebar p {
+  opacity: 1;
+}
+
+.nav-item,
+.top .logo span {
+  white-space: nowrap;
+  overflow: hidden;
+  transition: all 0.5s ease;
+}
+
+.sidebar ul li .tooltip {
+  position: fixed;
+  left: 6rem;
+  background: #fff;
+  box-shadow: 0 0.5rem 0.8rem rgba(0, 0, 0, 0.2);
+  border-radius: 0.6rem;
+  padding: 0.4rem 1.2rem;
+  line-height: 1.8rem;
+  display: none;
+}
+
+.sidebar ul li:hover .tooltip {
+  display: inline;
+}
+
+.sidebar.active ul li .tooltip {
+  opacity: 0;
+}
+
+.sidebar ul li a i {
+  min-width: 50px;
+  text-align: center;
+  height: 50px;
+  border-radius: 12px;
+  line-height: 50px;
+}
+.sidebar .nav-item {
+  display: none;
+}
+
+.sidebar.active .nav-item {
+  display: inline-block;
+}

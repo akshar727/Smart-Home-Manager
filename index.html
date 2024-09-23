@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.12.9/babel.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://site-assets.fontawesome.com/releases/v6.6.0/css/all.css"
+    />
+    <link rel="stylesheet" href="index.css" />
+    <title>Blinds Manager - Dashboard</title>
+  </head>
+  <body>
+    <div class="sidebar">
+      <div class="top">
+        <div class="logo">
+          <span>Blinds Manager</span>
+        </div>
+        <i class="fa-regular fa-bars" id="btn"></i>
+      </div>
+      <ul>
+        <li>
+          <a href="#">
+            <i class="fa-regular fa-house"></i>
+            <span class="nav-item">Dashboard</span>
+            <span class="tooltip">Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="#">
+            <i class="fa-regular fa-gear"></i>
+            <span class="nav-item">Settings</span>
+            <span class="tooltip">Settings</span>
+          </a>
+        </li>
+        <li>
+          <a href="#">
+            <i class="fa-regular fa-info"></i>
+            <span class="nav-item">Server Info</span>
+            <span class="tooltip">Server Info</span>
+          </a>
+        </li>
+        <li>
+          <a href="#">
+            <i class="fa-regular fa-gear"></i>
+            <span class="nav-item">Dashboard</span>
+            <span class="tooltip">Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="#">
+            <i class="fa-regular fa-gear"></i>
+            <span class="nav-item">Dashboard</span>
+            <span class="tooltip">Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="#">
+            <i class="fa-regular fa-gear"></i>
+            <span class="nav-item">Dashboard</span>
+            <span class="tooltip">Dashboard</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+    <div id="main">
+      <h1>Your Devices</h1>
+      <div id="app"></div>
+    </div>
+
+    <script type="text/babel">
+      document.querySelector("#btn").addEventListener("click", () => {
+        document.querySelector(".sidebar").classList.toggle("active");
+      });
+      const _devices = [];
+
+      function organizeData(data) {
+        if (Object.keys(data).length === 0) {
+          return {};
+        }
+        // create a dictionary, where the key is the device type and the value is a list of dictionaries of the devices
+        const organizedData = data.reduce((acc, device) => {
+          if (!acc[device.type]) {
+            acc[device.type] = [];
+          }
+          acc[device.type].push(device);
+          return acc;
+        }, {});
+        return organizedData;
+      }
+      // create 5 fake devices that have a location, status, and device type (set all to "blind")
+      function DeviceWidgets() {
+        const [devices, setDevices] = React.useState(organizeData(_devices));
+        const [device_found, setDeviceFound] = React.useState(false);
+        // create the same setinterval function to fetch the updates
+        React.useEffect(() => {
+          //Implementing the setInterval method
+          const interval = setInterval(() => {
+            fetch("/api/updates")
+              .then((res) => res.json())
+              .then((data) => {
+                if (JSON.stringify(data).includes("device_found") && !device_found) {
+                  setDeviceFound(true);
+                  console.log(device_found);
+                  var a = prompt("Device found!, please enter the new device's location");
+                  var b = prompt("Please enter the new device's type");
+
+                  fetch("/api/credential-apply", {
+                    method: "POST",
+                    body: JSON.stringify({
+                      location: a,
+                      type: b,
+                    }),
+                  }).then((res) => {
+                    if (res.status === 200) {
+                      alert("Device added successfully!");
+                    } else {
+                      alert("An error occurred while adding the device");
+                    }
+                  });
+                }
+                console.log(device_found);
+                console.log(organizeData(data));
+                setDevices(organizeData(data));
+              })
+              .catch((error) => {
+                var organized = organizeData(_devices);
+                setDevices(() => {
+                  organized.blind = organized.blind.map((device) => ({
+                    ...device,
+                    status: Math.random() > 0.5 ? "open" : "closed",
+                  }));
+                  return organized;
+                });
+              });
+          }, 5000);
+          //Clearing the interval
+          return () => clearInterval(interval);
+        }, []);
+        // create a function that can fetch a device operation
+
+        function fetchOperation(id, operation) {
+          fetch(`/api/operation/${id}/${operation}`)
+            .then((res) => res.json())
+            .then((data) => {
+              console.log(data);
+              setDevices(data);
+            });
+        }
+
+        return (
+          <React.Fragment>
+            {(Object.keys(devices).length === 0 || device_found) && (
+              <p>No devices yet. Check the instructions on how to add one!</p>
+            )}
+            {(Object.keys(devices).length > 0 && !device_found) && (
+              <React.Fragment>
+                <h3 className="category-title">Blinds</h3>
+                <div className="devices">
+                  {devices.blind.map((device) => (
+                    <div key={device.location} className="device">
+                      <h3>{device.location}</h3>
+                      <p>Device status: {device.status}</p>
+                      <div className="sp">
+                        <button
+                          className="op-btn"
+                          onClick={() => fetchOperation(device.id, "open")}
+                        >
+                          <i className="fa-solid fa-blinds-open"></i>
+                          Open
+                        </button>
+                        <button
+                          className="op-btn"
+                          onClick={() => fetchOperation(device.id, "close")}
+                        >
+                          <i className="fa-solid fa-blinds"></i>
+                          Close
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <h3 className="category-title">Cameras</h3>
+                <div className="devices">
+                  {devices.camera.map((device) => (
+                    <div key={device.location} className="device">
+                      <h3>{device.location}</h3>
+                      <button className="op-btn">
+                        <i className="fa-solid fa-video"></i>
+                        View Stream
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </React.Fragment>
+            )}
+          </React.Fragment>
+        );
+      }
+      // render the device widget
+      ReactDOM.render(<DeviceWidgets />, document.getElementById("app"));
+    </script>
+  </body>
+</html>
