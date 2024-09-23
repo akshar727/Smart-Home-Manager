@@ -224,7 +224,7 @@ elif setup == 0:
     device_info = aioble.Service(_GENERIC)
     connection = None
 
-    aioble.Characteristic(device_info, bluetooth.UUID(MANUFACTURER_DATA),read=True,initial="Pico W Blinds")
+    aioble.Characteristic(device_info, bluetooth.UUID(MANUFACTURER_DATA),read=True,initial="Pico W Server")
     aioble.Characteristic(device_info, bluetooth.UUID(MODEL_NUMBER),read=True,initial="1.0")
     aioble.Characteristic(device_info, bluetooth.UUID(SERIAL_NUMBER),read=True,initial=uid())
     aioble.Characteristic(device_info, bluetooth.UUID(FIRMWARE_REVISION),read=True,initial=sys.version)
@@ -266,7 +266,7 @@ elif setup == 0:
         global connected, connection
         while True:
             connected = False
-            async with await aioble.advertise(ADV_INTERVAL_MS, name="Pico W Blinds",appearance=_BLE_APPEARANCE_GENERIC_UNKNOWN,services=[_GENERIC]) as connection:
+            async with await aioble.advertise(ADV_INTERVAL_MS, name="Pico W Server",appearance=_BLE_APPEARANCE_GENERIC_UNKNOWN,services=[_GENERIC]) as connection:
                 print("Connection from ", connection.device)
                 # send the ssid
                 connected = True
@@ -313,7 +313,7 @@ elif setup == 0:
         next_id += 1
         print(f"Found device at {data['location']} with ip {device['ip']}. Assigning ID of {device['id']}")
         return {"success":True}
-
+    # user to server pico to client pico
     @app.route("/api/operation/<int:id>/<string:status>",methods=["GET"])
     async def run_pico(request, id,status):
         target_device = None
@@ -329,7 +329,7 @@ elif setup == 0:
         status = r.json()
         return status
 
-
+    # meant from client pico to server
     @app.route("/api/net/finish")
     async def finish_status_change(request):
         data = request.json
@@ -356,7 +356,12 @@ elif setup == 0:
 
         
         return statuses
-
+    @app.route("/api/network")
+    async def check_for_devices(request):
+        if connected and not lok:
+            return [True]
+        else:
+            return [False]
 
     @app.route("/api/credential-apply",methods=["POST"])
     async def apply_credentials(request):
@@ -366,7 +371,6 @@ elif setup == 0:
         data = json.loads(request.body.decode())
         print(data)
         loc = data["location"]
-        _type = data["type"]
         print("Characteristic: "+ str(wifi_ssd_characteristic))
         await asyncio.sleep(1)
 
@@ -384,15 +388,14 @@ elif setup == 0:
             wifi_ssd_characteristic.notify(connection,";e")
         lock = True
         await send(ssid,"w;")
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.3)
         await send(password,"p;")
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.3)
         await send(loc.encode(),"l;",False)
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.3)
         await send(ip.encode(),"i;",False)
-        await asyncio.sleep(1)
-        await send(_type.encode(),"t;",False)
         # disconnect from the device
+        lock = False
         return {"success":True}
         
 

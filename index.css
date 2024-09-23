@@ -92,6 +92,11 @@
   margin-bottom: 0.5rem;
 }
 
+.inp {
+  margin-top: 0.3rem;
+  margin-bottom:0.3rem;
+}
+
 .sidebar {
   position: fixed;
   top: 0;

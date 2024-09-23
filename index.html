@@ -6,71 +6,21 @@
     <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone@7.12.9/babel.min.js"></script>
+    <link
+        rel="stylesheet"
+        href="https://site-assets.fontawesome.com/releases/v6.6.0/css/all.css"
+      >
     <link rel="stylesheet" href="index.css" />
-    <title>Blinds Manager - Dashboard</title>
+    <title>Smart Home Manager - Dashboard</title>
   </head>
   <body>
-    <div class="sidebar">
-      <div class="top">
-        <div class="logo">
-          <span>Blinds Manager</span>
-        </div>
-        <i class="fa-regular fa-bars" id="btn"></i>
-      </div>
-      <ul>
-        <li>
-          <a href="#">
-            <i class="fa-regular fa-house"></i>
-            <span class="nav-item">Dashboard</span>
-            <span class="tooltip">Dashboard</span>
-          </a>
-        </li>
-        <li>
-          <a href="#">
-            <i class="fa-regular fa-gear"></i>
-            <span class="nav-item">Settings</span>
-            <span class="tooltip">Settings</span>
-          </a>
-        </li>
-        <li>
-          <a href="#">
-            <i class="fa-regular fa-info"></i>
-            <span class="nav-item">Server Info</span>
-            <span class="tooltip">Server Info</span>
-          </a>
-        </li>
-        <li>
-          <a href="#">
-            <i class="fa-regular fa-gear"></i>
-            <span class="nav-item">Dashboard</span>
-            <span class="tooltip">Dashboard</span>
-          </a>
-        </li>
-        <li>
-          <a href="#">
-            <i class="fa-regular fa-gear"></i>
-            <span class="nav-item">Dashboard</span>
-            <span class="tooltip">Dashboard</span>
-          </a>
-        </li>
-        <li>
-          <a href="#">
-            <i class="fa-regular fa-gear"></i>
-            <span class="nav-item">Dashboard</span>
-            <span class="tooltip">Dashboard</span>
-          </a>
-        </li>
-      </ul>
-    </div>
+    <div class="sidebar"></div>
     <div id="main">
       <h1>Your Devices</h1>
       <div id="app"></div>
     </div>
 
     <script type="text/babel">
-      document.querySelector("#btn").addEventListener("click", () => {
-        document.querySelector(".sidebar").classList.toggle("active");
-      });
       const _devices = [];
 
       function organizeData(data) {
@@ -87,6 +37,134 @@
         }, {});
         return organizedData;
       }
+
+      function Sidebar() {
+
+        function changeScreen(page) {
+          currentPage = page;
+          rerender();
+        }
+        function toggleActive() {
+          document.querySelector(".sidebar").classList.toggle("active");
+        }
+
+
+
+        return (
+          <>
+            <div className="top">
+              <div className="logo">
+                <span>Smart Home Manager</span>
+              </div>
+              <i className="fa-regular fa-bars" id="btn" onClick={toggleActive}></i>
+            </div>
+            <ul>
+              <li>
+                <a href="#" onClick={() => changeScreen(0)}>
+                  <i className="fa-regular fa-house"></i>
+                  <span className="nav-item">Dashboard</span>
+                  <span className="tooltip">Dashboard</span>
+                </a>
+              </li>
+              <li>
+                <a href="#" onClick={() => changeScreen(1)}>
+                  <i className="fa-regular fa-gear"></i>
+                  <span className="nav-item">Settings</span>
+                  <span className="tooltip">Settings</span>
+                </a>
+              </li>
+              <li>
+                <a href="#" onClick={() => changeScreen(2)}>
+                  <i className="fa-regular fa-info"></i>
+                  <span className="nav-item">Server Info</span>
+                  <span className="tooltip">Server Info</span>
+                </a>
+              </li>
+              <li>
+                <a href="#" onClick={() => changeScreen(3)}>
+                  <i className="fa-regular fa-cloud-arrow-up"></i>
+                  <span className="nav-item">Add A Device</span>
+                  <span className="tooltip">Add A Device</span>
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <i className="fa-regular fa-gear"></i>
+                  <span className="nav-item">Dashboard</span>
+                  <span className="tooltip">Dashboard</span>
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <i className="fa-regular fa-gear"></i>
+                  <span className="nav-item">Dashboard</span>
+                  <span className="tooltip">Dashboard</span>
+                </a>
+              </li>
+            </ul>
+          </>
+        );
+      }
+
+      function FindNewDevice() {
+        const [deviceFound, setDeviceFound] = React.useState(false);
+
+        function sendCredentials() {
+          fetch("/api/credential-apply", {
+            method: "POST",
+            body: JSON.stringify({
+              location: a,
+            }),
+          }).then((res) => {
+            if (res.status === 200) {
+              alert("Device added successfully!");
+            } else {
+              alert("An error occurred while adding the device");
+            }
+          });
+        }
+
+        React.useEffect(() => {
+          const interval = setInterval(() => {
+            fetch("/api/network")
+              .then((res) => res.json())
+              .then((data) => {
+                if (data[0] === true) {
+                  setDeviceFound(true);
+                }
+              });
+          }, 1000);
+          return () => clearInterval(interval);
+        }, []);
+        return (
+          <>
+            {deviceFound && (
+              <>
+                <h1>Device Found!</h1>
+                <label htmlFor="location">Device Location</label>
+                <br />
+                <input
+                  type="text"
+                  className="inp"
+                  name="location"
+                  placeholder="Office, Kitchen, Dining Room 1"
+                ></input>
+                <br />
+                <button className="op-btn">Finish Setup</button>
+              </>
+            )}
+            {!deviceFound && (
+              <>
+                <h2>
+                  No devices found yet.. Check the instructions on how to add
+                  one!
+                </h2>
+              </>
+            )}
+          </>
+        );
+      }
+
       // create 5 fake devices that have a location, status, and device type (set all to "blind")
       function DeviceWidgets() {
         const [devices, setDevices] = React.useState(organizeData(_devices));
@@ -98,31 +176,12 @@
             fetch("/api/updates")
               .then((res) => res.json())
               .then((data) => {
-                if (JSON.stringify(data).includes("device_found") && !device_found) {
-                  setDeviceFound(true);
-                  console.log(device_found);
-                  var a = prompt("Device found!, please enter the new device's location");
-                  var b = prompt("Please enter the new device's type");
-
-                  fetch("/api/credential-apply", {
-                    method: "POST",
-                    body: JSON.stringify({
-                      location: a,
-                      type: b,
-                    }),
-                  }).then((res) => {
-                    if (res.status === 200) {
-                      alert("Device added successfully!");
-                    } else {
-                      alert("An error occurred while adding the device");
-                    }
-                  });
-                }
                 console.log(device_found);
                 console.log(organizeData(data));
                 setDevices(organizeData(data));
               })
               .catch((error) => {
+                // mostly dev purposes but also incase the fetch fails
                 var organized = organizeData(_devices);
                 setDevices(() => {
                   organized.blind = organized.blind.map((device) => ({
@@ -152,7 +211,7 @@
             {(Object.keys(devices).length === 0 || device_found) && (
               <p>No devices yet. Check the instructions on how to add one!</p>
             )}
-            {(Object.keys(devices).length > 0 && !device_found) && (
+            {Object.keys(devices).length > 0 && !device_found && (
               <React.Fragment>
                 <h3 className="category-title">Blinds</h3>
                 <div className="devices">
@@ -196,8 +255,17 @@
           </React.Fragment>
         );
       }
-      // render the device widget
-      ReactDOM.render(<DeviceWidgets />, document.getElementById("app"));
+      var currentPage = 0;
+
+      function rerender() {
+        if (currentPage === 0) {
+          ReactDOM.render(<DeviceWidgets />, document.getElementById("app"));
+        } else if (currentPage === 3) {
+          ReactDOM.render(<FindNewDevice />, document.getElementById("app"));
+        }
+
+        ReactDOM.render(<Sidebar />, document.querySelector(".sidebar"));
+      }
     </script>
   </body>
 </html>
