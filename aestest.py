@@ -12,7 +12,7 @@ iv = b'gf4]\xd8\xf27Tg\xa7\xf5\xfdb,\xf6\xc3'
 #             AES ECB Cryptographic               #
 ###################################################
  
-plaintext = 'w;PoojaTejasWifi'
+plaintext = 'w;somewifi'
 print('Plain Text:', plaintext)
  
 # Padding plain text with space 
