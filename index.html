@@ -7,9 +7,9 @@
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone@7.12.9/babel.min.js"></script>
     <link
-        rel="stylesheet"
-        href="https://site-assets.fontawesome.com/releases/v6.6.0/css/all.css"
-      >
+      rel="stylesheet"
+      href="https://site-assets.fontawesome.com/releases/v6.6.0/css/all.css"
+    />
     <link rel="stylesheet" href="index.css" />
     <title>Smart Home Manager - Dashboard</title>
   </head>
@@ -39,7 +39,6 @@
       }
 
       function Sidebar() {
-
         function changeScreen(page) {
           currentPage = page;
           rerender();
@@ -48,15 +47,17 @@
           document.querySelector(".sidebar").classList.toggle("active");
         }
 
-
-
         return (
           <>
             <div className="top">
               <div className="logo">
                 <span>Smart Home Manager</span>
               </div>
-              <i className="fa-regular fa-bars" id="btn" onClick={toggleActive}></i>
+              <i
+                className="fa-regular fa-bars"
+                id="btn"
+                onClick={toggleActive}
+              ></i>
             </div>
             <ul>
               <li>
@@ -110,10 +111,11 @@
         const [deviceFound, setDeviceFound] = React.useState(false);
 
         function sendCredentials() {
+          loc = document.querySelector("input[name=location]").value;
           fetch("/api/credential-apply", {
             method: "POST",
             body: JSON.stringify({
-              location: a,
+              location: loc,
             }),
           }).then((res) => {
             if (res.status === 200) {
@@ -150,15 +152,15 @@
                   placeholder="Office, Kitchen, Dining Room 1"
                 ></input>
                 <br />
-                <button className="op-btn">Finish Setup</button>
+                <button className="op-btn" onClick={() => sendCredentials()}>Finish Setup</button>
               </>
             )}
-            {!deviceFound && (
+            {deviceFound === false && (
               <>
-                <h2>
-                  No devices found yet.. Check the instructions on how to add
-                  one!
-                </h2>
+                <p>
+                  Scanning for devices...
+                </p>
+                <p> If you have a device to add, please turn it on now.</p>
               </>
             )}
           </>
@@ -240,15 +242,19 @@
                 </div>
                 <h3 className="category-title">Cameras</h3>
                 <div className="devices">
-                  {devices.camera.map((device) => (
-                    <div key={device.location} className="device">
-                      <h3>{device.location}</h3>
-                      <button className="op-btn">
-                        <i className="fa-solid fa-video"></i>
-                        View Stream
-                      </button>
-                    </div>
-                  ))}
+                  {devices.camera !== undefined && (
+                    <>
+                      {devices.camera.map((device) => (
+                        <div key={device.location} className="device">
+                          <h3>{device.location}</h3>
+                          <button className="op-btn">
+                            <i className="fa-solid fa-video"></i>
+                            View Stream
+                          </button>
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </div>
               </React.Fragment>
             )}
@@ -258,6 +264,8 @@
       var currentPage = 0;
 
       function rerender() {
+        // delete any elements in the app div
+        ReactDOM.unmountComponentAtNode(document.getElementById("app"));
         if (currentPage === 0) {
           ReactDOM.render(<DeviceWidgets />, document.getElementById("app"));
         } else if (currentPage === 3) {
@@ -266,6 +274,7 @@
 
         ReactDOM.render(<Sidebar />, document.querySelector(".sidebar"));
       }
+      rerender();
     </script>
   </body>
 </html>

@@ -29,7 +29,7 @@ def aes_decrypt(ct_bytes):
 
 
 class ClientSetupManager():
-    def __init__(self):
+    def __init__(self,fname):
         self._SERVER_UUID = bluetooth.UUID(0x2A6E)
         self._GENERIC = bluetooth.UUID(0x180A)
         self._SERVER_CHARACTERISTICS_UUID = bluetooth.UUID(0xBCA3)
@@ -37,6 +37,7 @@ class ClientSetupManager():
         self.connected = False
         self.alive = False
         self.info = {}
+        self.fname = fname
 
     async def find_server(self):
         async with aioble.scan(5000, interval_us=30000, window_us=30000, active=True) as scanner:
@@ -57,22 +58,22 @@ class ClientSetupManager():
             dec = cred.decode()
         print("Recieved Credential: ", dec)
         if dec.startswith("w;"):
-            info["ssid"] = dec.split(";")[1]
+            self.info["ssid"] = dec.split(";")[1]
         elif dec.startswith("p;"):
-            info["pwd"] = dec.split(";")[1]
+            self.info["pwd"] = dec.split(";")[1]
         elif dec.startswith("l;"):
-            info["location"] = dec.split(";")[1]
+            self.info["location"] = dec.split(";")[1]
         elif dec.startswith("i;"):
-            info["server_ip"] = dec.split(";")[1]
+            self.info["server_ip"] = dec.split(";")[1]
             print("Recieved all data necessary.")
-            with open(fname,"w") as f:
-                json.dump(info,f)
+            with open(self.fname,"w") as f:
+                json.dump(self.info,f)
 
-    async def peripheral_task():
+    async def peripheral_task(self):
         global connected, alive
         
         connected = False
-        device = await find_server()
+        device = await self.find_server()
         if not device:
             print("Server not found")
             return
@@ -137,7 +138,7 @@ class ClientSetupManager():
                                 buff_type = cred[:2]
                             elif cred == b";e":
                                 print(b"End of transmission: " + buff)
-                                save_credential(buff)
+                                self.save_credential(buff)
                                 buff = b""
                                 buff_type = b""
                             else:
@@ -154,4 +155,4 @@ class ClientSetupManager():
             print("Disconnected")
             alive = False
     def start_setup(self):
-        asyncio.run(peripheral_task())
+        asyncio.run(self.peripheral_task())

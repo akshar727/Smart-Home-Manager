@@ -350,15 +350,15 @@ elif setup == 0:
         statuses = []
         for dev in available_devices:
             statuses.append({"location":dev["location"],"status":dev["status"],"type":dev["type"],"id":dev["id"]})
-        if connected and not lock:
-            # join statuses and "device_found"  in a new list and return it
-            statuses.append("device_found")
+        # if connected and not lock:
+        #     # join statuses and "device_found"  in a new list and return it
+        #     statuses.append("device_found")
 
         
         return statuses
     @app.route("/api/network")
     async def check_for_devices(request):
-        if connected and not lok:
+        if connected and not lock:
             return [True]
         else:
             return [False]

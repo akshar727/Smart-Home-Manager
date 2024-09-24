@@ -33,7 +33,7 @@ if isfile(fname):
     with open(fname) as f:
         client_data = json.load(f)
 
-server_ip = client_data["server_ip"]
+    server_ip = client_data["server_ip"]
 
 
 _type = ""
@@ -57,7 +57,7 @@ def aes_decrypt(ct_bytes):
 
 print("Setup: ",setup)
 if setup:
-    setup_manager = ClientSetupManager()
+    setup_manager = ClientSetupManager(fname)
     setup_manager.start_setup()
 else:
 
