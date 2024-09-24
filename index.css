@@ -7,7 +7,7 @@
   padding: 0;
   box-sizing: border-box;
 }
-#app {
+#app :not(h1) {
   /* make it flex and make it so that each row has 4 boxes */
 
   /* add some padding and margin */
@@ -128,7 +128,7 @@
   line-height: 50px;
   transform: translateX(-50%);
   cursor: pointer;
-  transition: all 0.5s ease;
+  /* transition: all 0.5s ease; */
 }
 
 .sidebar.active #btn {
@@ -153,7 +153,7 @@
   border-radius: 0.8rem;
 }
 
-.sidebar ul li:hover a {
+.sidebar ul li:hover a, .sidebar ul li.active a {
   background-color: #fff;
   color: #2f78ff;
 }

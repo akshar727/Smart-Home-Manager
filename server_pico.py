@@ -356,11 +356,19 @@ elif setup == 0:
 
         
         return statuses
+    def get_elapsed_time():
+        return time.ticks_ms() // 1000  # Convert milliseconds to seconds
+
+    @app.route("/api/server-info")
+    async def server_info(request):
+        return {"ip":ip,"uptime":get_elapsed_time()}
     @app.route("/api/network")
     async def check_for_devices(request):
         if connected and not lock:
+            led.on()
             return [True]
         else:
+            led.off()
             return [False]
 
     @app.route("/api/credential-apply",methods=["POST"])

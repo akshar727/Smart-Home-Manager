@@ -97,6 +97,8 @@ class ClientSetupManager():
             
             async with connection:
                 print("Connected")
+                led = machine.Pin("LED", machine.Pin.OUT)
+                led.on()
                 alive = True
                 connected = True
 
@@ -153,6 +155,7 @@ class ClientSetupManager():
             await connection.disconnect()
             connected = False
             print("Disconnected")
+            led.off()
             alive = False
     def start_setup(self):
         asyncio.run(self.peripheral_task())
