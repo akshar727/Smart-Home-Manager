@@ -41,19 +41,6 @@ _type = ""
 id_file = "IDENTITY"
 with open(id_file, "r") as f:
     _type = f.read()
- 
-# key size must be 16 or 32
-# key = b"q\x06\xfd\xc1\x01'\x8a<\x1bV\xf0\xf4\xda\x0e\xf05q\x17Ws\x16\x18\xbfqL\x10\x9c\xe0\xed\x11F\xa1"
-# iv = b'gf4]\xd8\xf27Tg\xa7\xf5\xfdb,\xf6\xc3'
-
-
-# def aes_decrypt(ct_bytes):
-#     cipher = aes(key,MODE_CBC,iv)
-#     decrypted = cipher.decrypt(ct_bytes)
-#     return decrypted.strip()
-
-
-
 
 print("Setup: ",setup)
 if setup:
@@ -99,24 +86,42 @@ else:
         machine.reset()
         pass
     led.toggle()
-
+    forward_pin = machine.Pin(27, machine.Pin.OUT)
+    backward_pin = machine.Pin(28, machine.Pin.OUT)
 
     print("Sending identification..")
     send_identification()
     print("Done!")
 
     app = Microdot()
+    calibrations = {
+        "closed_to_open": 10,
+        "open_to_closed": 10
+    }
+    my_id = 0
 
+    async def change_state(status):
+        if status == "open":
+            forward_pin.on()
+            backward_pin.off()
+            await asyncio.sleep(calibrations["closed_to_open"])
+            forward_pin.off()
+        elif status == "close":
+            forward_pin.off()
+            backward_pin.on()
+            await asyncio.sleep(calibrations["open_to_closed"])
+            backward_pin.off()
+        # TODO: this is where we actually move the motors
 
-    def change_state(status):
-
-        pass # TODO: this is where we actually move the motors
+        r = requests.post(f"http://{server_ip}/api/net/state", json={"status": status, "id": my_id})
 
     @app.route("/status",methods=["POST"])
     async def status_change(request):
         data = request.json
         status = data["status"]
-        change_state(status)
+        my_id = data["id"]
+        await change_state(status)
         #{"new_status": "open" | "close"}
+        return {"success": True}
 
     app.run(host=ip, port=80)

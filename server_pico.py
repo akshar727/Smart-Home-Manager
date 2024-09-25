@@ -196,7 +196,6 @@ elif setup == 0:
     led.off()
     ip = ...
     next_id = 0
-    device_found = False
 
     with open(fname) as f:
         cred = json.load(f)
@@ -261,21 +260,21 @@ elif setup == 0:
         return send_file("index.html")
     
 
-    async def ble_send_datas():
+    async def ble_advertise():
         
         global connected, connection
         while True:
             connected = False
             async with await aioble.advertise(ADV_INTERVAL_MS, name="Pico W Server",appearance=_BLE_APPEARANCE_GENERIC_UNKNOWN,services=[_GENERIC]) as connection:
                 print("Connection from ", connection.device)
-                # send the ssid
                 connected = True
                 await connection.disconnected()
+                connected = False
                 print("Disconnected")
 
 
 
-    asyncio.create_task(ble_send_datas())
+    asyncio.create_task(ble_advertise())
     
     @app.route('/log.txt')
     async def log(request):
@@ -294,9 +293,9 @@ elif setup == 0:
     @app.route("/clearlog")
     async def clear_log(request):
         logfile.flush()
-
-        with open("log.txt","w") as f:
-            f.write("")
+        logfile.seek(0)
+        logfile.truncate(0)
+        logfile.flush()
         return "Log cleared"
         
     
@@ -308,7 +307,7 @@ elif setup == 0:
     async def register(request):
         global next_id
         data = request.json
-        device = {"ip":request.client_addr[0],"location":data["location"],"type":"blind","id":next_id,"status":"open"}
+        device = {"ip":request.client_addr[0],"location":data["location"],"type":data["type"],"id":next_id,"status":"open"}
         available_devices.append(device)
         next_id += 1
         print(f"Found device at {data['location']} with ip {device['ip']}. Assigning ID of {device['id']}")
@@ -323,7 +322,7 @@ elif setup == 0:
                 break
         if target_device == None:
             return {"success":False, "err": "Device not found or not registered"}
-        req_data = {"new_status":status}
+        req_data = {"new_status":status,"id":target_device["id"]}
         target_device["status"] = "transit"
         r = requests.post("http://"+target_device["ip"]+"/status",json=req_data)
         status = r.json()
@@ -333,15 +332,16 @@ elif setup == 0:
     @app.route("/api/net/finish")
     async def finish_status_change(request):
         data = request.json
-        loc = data["location"]
+        _id = data["id"]
         target_device = None
         for device in available_devices:
-            if device["location"].lower() == loc.lower():
+            if device["id"] ==  _id:
                 target_device = device
                 break
         if target_device == None:
             return {"success":False, "err": "Device not found or not registered"}
         target_device["status"] = data["final_status"]
+        return {"success":True}
         
     lock = False
     @app.route("/api/updates")
@@ -350,18 +350,25 @@ elif setup == 0:
         statuses = []
         for dev in available_devices:
             statuses.append({"location":dev["location"],"status":dev["status"],"type":dev["type"],"id":dev["id"]})
-        # if connected and not lock:
-        #     # join statuses and "device_found"  in a new list and return it
-        #     statuses.append("device_found")
 
         
         return statuses
     def get_elapsed_time():
         return time.ticks_ms() // 1000  # Convert milliseconds to seconds
-
+    def format_uptime(seconds):
+        days = seconds // (24 * 3600)
+        seconds %= (24 * 3600)
+        hours = seconds // 3600
+        seconds %= 3600
+        minutes = seconds // 60
+        seconds %= 60
+        return f"{days} days, {hours} hours, {minutes} minutes, {seconds} seconds"
     @app.route("/api/server-info")
     async def server_info(request):
-        return {"ip":ip,"uptime":get_elapsed_time()}
+        uptime = format_uptime(get_elapsed_time())
+        # format uptime as XX days, XX hours, XX minutes, XX seconds before returning
+
+        return {"ip":ip,"time":get_elapsed_time()}
     @app.route("/api/network")
     async def check_for_devices(request):
         if connected and not lock:

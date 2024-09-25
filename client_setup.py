@@ -17,11 +17,9 @@ BLOCK_SIZE = 16
 # key size must be 16 or 32
 key = b"q\x06\xfd\xc1\x01'\x8a<\x1bV\xf0\xf4\xda\x0e\xf05q\x17Ws\x16\x18\xbfqL\x10\x9c\xe0\xed\x11F\xa1"
 iv = b'gf4]\xd8\xf27Tg\xa7\xf5\xfdb,\xf6\xc3'
-# server_ip = "192.168.86.195"
 
 
 def aes_decrypt(ct_bytes):
-    print(ct_bytes)
     cipher = aes(key,MODE_CBC,iv)
     decrypted = cipher.decrypt(ct_bytes)
     return decrypted.strip()
@@ -51,7 +49,6 @@ class ClientSetupManager():
                         return result.device
         return None
     def save_credential(self,cred):
-        # print("Recieved Credential: ",cred)
         if  cred[:2] == b"w;" or cred[:2] == b"p;":
             dec = cred[:2].decode() + aes_decrypt(cred[2:]).decode()
         else:
@@ -110,10 +107,6 @@ class ClientSetupManager():
                         print(wifi_service)
                         wifi_characteristic = await wifi_service.characteristic(self._SERVER_CHARACTERISTICS_UUID)  
                         print(wifi_characteristic)
-                        # if wifi_service == None:
-                        #     print("Server disconnected")
-                        #     alive = False
-                        #     break
                     except asyncio.TimeoutError:
                         print("Connection timeout when getting service/caracteristic")
                         alive = False
