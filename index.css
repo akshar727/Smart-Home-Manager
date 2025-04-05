@@ -73,6 +73,13 @@
   flex-wrap: nowrap;
   font-size: 0.9rem;
 }
+.op-btn:disabled {
+  background-color: #b0c4ff;
+  color: #ffffff80;
+  cursor: not-allowed;
+  border-color: #b0c4ff;
+}
+
 /* .op-btn > i {
   font-size: 1.2rem;
 } */

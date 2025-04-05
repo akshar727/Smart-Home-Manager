@@ -2,15 +2,18 @@
 import asyncio
 import os
 import json
+from microdot.cors import CORS
 from microdot.microdot import Microdot, send_file, Response
-import requests
+import urequests as requests
 import machine
 import aioble
 import bluetooth
 import sys
 import network
 from utime import sleep
+import utime as time
 import _thread
+from machine import Pin
 import os
 import micropython
 import cryptolib
@@ -21,15 +24,16 @@ def uid():
 
 
 
+
 logfile = open('log.txt', 'a',0)
 # clear the log file
 # duplicate stdout and stderr to the log file
 os.dupterm(logfile) # type: ignore
 
-
+    
 MODE_CBC = 2
 BLOCK_SIZE = 16
- 
+
 # key size must be 16 or 32
 key = b"q\x06\xfd\xc1\x01'\x8a<\x1bV\xf0\xf4\xda\x0e\xf05q\x17Ws\x16\x18\xbfqL\x10\x9c\xe0\xed\x11F\xa1"
 iv = b'gf4]\xd8\xf27Tg\xa7\xf5\xfdb,\xf6\xc3'
@@ -60,6 +64,7 @@ class NetworkError(Exception):
     pass
 
 app = Microdot()
+CORS(app, allowed_origins='*', allow_credentials=True)
 available_devices = []
 
 def connect(ssid,password,exit_on_not_found):
@@ -152,7 +157,7 @@ if setup == 1:
         print('AP Mode Is Active, You can Now Connect')
         print('IP Address To Connect to:: ' + ap.ifconfig()[0])
     
-     
+    
     
     ap_mode('Rpi Pico W',
             '123456789')
@@ -274,7 +279,7 @@ elif setup == 0:
 
 
 
-    asyncio.create_task(ble_advertise())
+    # asyncio.create_task(ble_advertise())
     
     @app.route('/log.txt')
     async def log(request):
@@ -307,6 +312,10 @@ elif setup == 0:
     async def register(request):
         global next_id
         data = request.json
+        # check if the device is already registered if so then just act like it was successful
+        for device in available_devices:
+            if device["ip"] == request.client_addr[0]:
+                return {"success":True}
         device = {"ip":request.client_addr[0],"location":data["location"],"type":data["type"],"id":next_id,"status":"open"}
         available_devices.append(device)
         next_id += 1
@@ -322,16 +331,23 @@ elif setup == 0:
                 break
         if target_device == None:
             return {"success":False, "err": "Device not found or not registered"}
-        req_data = {"new_status":status,"id":target_device["id"]}
-        target_device["status"] = "transit"
-        r = requests.post("http://"+target_device["ip"]+"/status",json=req_data)
+        req_data = {"status":status,"id":target_device["id"]}
+        target_device["status"] = "transit_open" if status == "open" else "transit_close"
+        print(target_device["ip"])
+        print(f"Sending {status} to {target_device['location']} with id {target_device['id']}")
+        print(req_data)
+        print(type(target_device["ip"]))
+        print("sending")
+        r = requests.post(f"http://{target_device['ip']}/status", json=req_data)
+        print("sent")
+        print(r.status_code)
         status = r.json()
         return status
 
     # meant from client pico to server
-    @app.route("/api/net/finish")
+    @app.route("/api/net/finish",methods=["POST"])
     async def finish_status_change(request):
-        data = request.json
+        data = json.loads(request.body)
         _id = data["id"]
         target_device = None
         for device in available_devices:
@@ -422,5 +438,15 @@ elif setup == 0:
     @app.errorhandler(404)
     async def not_found(request):
         return {'error': 'Resource not found'}, 404
-    app.run(port=80)
+    print("running")
+    async def main():
+        server = asyncio.create_task(app.start_server(port=80,debug=True,host="0.0.0.0"))
+        advertising = asyncio.create_task(ble_advertise())
+
+        # ... do other asynchronous work here ...
+
+        # cleanup before ending the application
+        await server
+        await advertising
+    asyncio.run(main())
 

@@ -135,7 +135,12 @@
         const [deviceFound, setDeviceFound] = React.useState(false);
 
         function sendCredentials() {
-          loc = document.querySelector("input[name=location]").value;
+          var loc = document.querySelector("input[name=location]").value;
+          loc = loc.trim();
+          if (loc === "") {
+            alert("Please enter a location.");
+            return;
+          }
           fetch("/api/credential-apply", {
             method: "POST",
             body: JSON.stringify({
@@ -143,7 +148,7 @@
             }),
           }).then((res) => {
             if (res.status === 200) {
-              alert("Device added successfully!");
+              alert("Device added successfully! Restart the device to see it.");
               changeScreen(0);
             } else {
               alert(
@@ -164,7 +169,7 @@
                   setDeviceFound(false);
                 }
               });
-          }, 1000);
+          }, 2500);
           return () => clearInterval(interval);
         }, []);
         return (
@@ -190,8 +195,11 @@
             {deviceFound === false && (
               <>
                 <p>Scanning for devices...</p>
-                <p> If you have a device to add, please turn it on now.
-                  The device should show up once both devices' leds turn <span style={{color:"green",padding:"0"}}>green</span>.
+                <p>
+                  {" "}
+                  If you have a device to add, please turn it on now. The device
+                  should show up once both devices' leds turn{" "}
+                  <span style={{ color: "green", padding: "0" }}>green</span>.
                 </p>
               </>
             )}
@@ -202,6 +210,23 @@
         const [devices, setDevices] = React.useState(organizeData(_devices));
         // create the same setinterval function to fetch the updates
         React.useEffect(() => {
+          fetch("/api/updates")
+            .then((res) => res.json())
+            .then((data) => {
+              // console.log(organizeData(data));
+              setDevices(organizeData(data));
+            })
+            .catch((error) => {
+              // mostly dev purposes but also incase the fetch fails
+              var organized = organizeData(_devices);
+              setDevices(() => {
+                organized.blind = organized.blind.map((device) => ({
+                  ...device,
+                  status: Math.random() > 0.5 ? "open" : "closed",
+                }));
+                return organized;
+              });
+            });
           //Implementing the setInterval method
           const interval = setInterval(() => {
             fetch("/api/updates")
@@ -228,14 +253,36 @@
         // create a function that can fetch a device operation
 
         function fetchOperation(id, operation) {
+          setDevices((prevDevices) => {
+            const newDevices = { ...prevDevices };
+            newDevices.blind = newDevices.blind.map((device) => {
+              if (device.id === id) {
+                return {
+                  ...device,
+                  status:
+                    operation === "open" ? "transit_open" : "transit_close",
+                };
+              }
+              return device;
+            });
+            return newDevices;
+          });
           fetch(`/api/operation/${id}/${operation}`)
             .then((res) => res.json())
             .then((data) => {
-              console.log(data);
-              setDevices(data);
+              if (data.success === true) {
+                console.log(
+                  `Operation ${operation} on device ${id} was successful.`
+                );
+                // change that device's status to the operation be Opening... or Closing...
+              } else {
+                console.log(
+                  "An error occurred while performing the operation. Please try again."
+                );
+              }
             });
         }
-
+        console.log("Rendering these devices", devices);
         return (
           <React.Fragment>
             <h1>Your Devices</h1>
@@ -249,10 +296,20 @@
                   {devices.blind.map((device) => (
                     <div key={device.location} className="device">
                       <h3>{device.location}</h3>
-                      <p>Device status: {device.status}</p>
+                      <p>
+                        Device status:{" "}
+                        {device.status === "open"
+                          ? "Opened"
+                          : device.status === "close"
+                          ? "Closed"
+                          : device.status === "transit_open"
+                          ? "Opening..."
+                          : "Closing..."}
+                      </p>
                       <div className="sp">
                         <button
                           className="op-btn"
+                          disabled={device.status === "open"}
                           onClick={() => fetchOperation(device.id, "open")}
                         >
                           <i className="fa-solid fa-blinds-open"></i>
@@ -260,6 +317,7 @@
                         </button>
                         <button
                           className="op-btn"
+                          disabled={device.status === "close"}
                           onClick={() => fetchOperation(device.id, "close")}
                         >
                           <i className="fa-solid fa-blinds"></i>
@@ -298,7 +356,6 @@
             fetch("/api/server-info")
               .then((res) => res.json())
               .then((data) => {
-                console.log(data);
                 setServerInfo(data);
               });
           }, 5000);
@@ -306,11 +363,16 @@
         }, []);
         return (
           <>
-          <h1>Server Info</h1>
-          <h3>Server Uptime</h3>
-          <p>Server has been up for {serverInfo.time}</p>
-          <h3>Server Log file</h3>
-          <p>View the server log file <a style={{padding:"0"}} href="/logs">here</a></p>
+            <h1>Server Info</h1>
+            <h3>Server Uptime</h3>
+            <p>Server has been up for {serverInfo.time} seconds</p>
+            <h3>Server Log file</h3>
+            <p>
+              View the server log file{" "}
+              <a style={{ padding: "0" }} href="/log.txt">
+                here
+              </a>
+            </p>
           </>
         );
       }

@@ -9,6 +9,8 @@ __pycache__/
 .idea/
 .micropico
 .DS_Store
+wifi.json
+Blinds Manager.code-workspace
 
 # Distribution / packaging
 .Python
