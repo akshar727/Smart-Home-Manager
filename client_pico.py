@@ -107,6 +107,7 @@ else:
 
     async def change_state(status):
         if status == "open":
+            backward_pin.off()
             if forward_pin.value() == 0:
                 forward_pin.on()
             else:
@@ -114,7 +115,7 @@ else:
             # forward_pin.on()
             # backward_pin.off()
             # await asyncio.sleep(calibrations["closed_to_open"])
-            forward_pin.off()
+            # forward_pin.off()
         elif status == "close":
             forward_pin.off()
             # set as a toggle so if the pin is already on, it will turn off and vice versa
