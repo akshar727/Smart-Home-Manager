@@ -8,13 +8,9 @@
   box-sizing: border-box;
 }
 #app {
-  /* make it flex and make it so that each row has 4 boxes */
-
-  /* add some padding and margin */
   padding: 20px;
   margin: 0;
   max-width: 800px;
-  /* add spacing between each box */
 }
 
 .devices {
@@ -34,20 +30,15 @@
 }
 
 .device {
-  /* add some padding and margin */
   padding: 20px;
   margin: 0;
-  /* add a border */
   border: 1px solid #ccc;
   border-radius: 5px;
-  /* make it flex */
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  /* make each box have the exact same size */
   flex: 1;
-  /* make it slightly bigger */
   min-width: 200px;
   min-height: 180px;
   /* add a shadow */
@@ -55,9 +46,7 @@
 }
 
 .op-btn {
-  /* add some padding */
   padding: 10px;
-  /* add some margin */
   margin: 10px 0;
   /* add a border */
   border: 1px solid #c9daf9;
@@ -65,8 +54,7 @@
   /* add a background color */
   background-color: var(--primary-color);
   color: #fff;
-  min-width: 4.5rem;
-  /* add a hover effect */
+  /* min-width: 4.5rem; */
   transition: background-color 0.3s;
   display: flex;
   gap: 10px;
@@ -101,7 +89,7 @@
 
 .inp {
   margin-top: 0.3rem;
-  margin-bottom:0.3rem;
+  margin-bottom: 0.3rem;
 }
 
 .sidebar {
@@ -160,7 +148,8 @@
   border-radius: 0.8rem;
 }
 
-.sidebar ul li:hover a, .sidebar ul li.active a {
+.sidebar ul li:hover a,
+.sidebar ul li.active a {
   background-color: #fff;
   color: #2f78ff;
 }

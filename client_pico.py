@@ -10,6 +10,7 @@ from time import sleep
 from microdot.cors import CORS
 import urequests as requests # type: ignore
 from microdot import Microdot # type: ignore
+import uos
 from cryptolib import aes
 from client_setup import ClientSetupManager
 
@@ -20,6 +21,24 @@ BLOCK_SIZE = 16
 status = ""
 logfile = open('log.txt', 'a',0)
 os.dupterm(logfile) # type: ignore
+
+# sset calibrations to     calibrations = {
+    #     "closed_to_open": 10,
+    #     "open_to_closed": 10
+    # } if file doesnt exist
+
+if not "calibration.json" in  uos.listdir():
+    calibrations = {
+        "closed_to_open": 10,
+        "open_to_closed": 10,
+        "state": "open"
+    }
+    with open("calibration.json", "w") as f:
+        json.dump(calibrations, f)
+else:   
+    with open("calibration.json", "r") as f:
+        calibrations = json.load(f)
+        print("Calibrations: ", calibrations)
 
 fname = "client_data.json"
 setup = True
@@ -57,6 +76,7 @@ else:
         k = {
             "type": _type,
             "location": client_data["location"],
+            "state": calibrations.get("state", "open"),
         }
         try:
             r = requests.post(f"http://{server_ip}/api/net/id", json=k)
@@ -99,49 +119,64 @@ else:
 
     app = Microdot()
     CORS(app, allowed_origins=[f'http://{server_ip}'], allow_credentials=True)
-    calibrations = {
-        "closed_to_open": 10,
-        "open_to_closed": 10
-    }
     my_id = 0
 
     async def change_state(status):
-        if status == "open":
-            backward_pin.off()
-            if forward_pin.value() == 0:
-                forward_pin.on()
-            else:
-                forward_pin.off()
-            # forward_pin.on()
-            # backward_pin.off()
-            # await asyncio.sleep(calibrations["closed_to_open"])
-            # forward_pin.off()
-        elif status == "close":
-            forward_pin.off()
-            # set as a toggle so if the pin is already on, it will turn off and vice versa
-            if backward_pin.value() == 0:
-                backward_pin.on()
-            else:
-                backward_pin.off()
-            # backward_pin.on()
-            # await asyncio.sleep(calibrations["open_to_closed"])
-            # backward_pin.off()
-        # TODO: this is where we actually move the motors
         print("Moving motors")
         print(server_ip)
-        await asyncio.sleep(1)
+        forward_pin.off()
+        backward_pin.off()
+        if status == "open":
+            backward_pin.off()
+            forward_pin.on()
+            await asyncio.sleep(calibrations["closed_to_open"])
+            calibrations["state"] = "open"
+            forward_pin.off()
+        elif status == "close":
+            forward_pin.off()
+            backward_pin.on()
+            await asyncio.sleep(calibrations["open_to_closed"])
+            backward_pin.off()
+            calibrations["state"] = "close"
+        # TODO: this is where we actually move the motors
         r = requests.post(f"http://{server_ip}/api/net/finish", json={"final_status": status, "id": my_id})
         response = r.json()
         print("Finished moving motors")
 
+    @app.route("/api/calibrate/set", methods=["POST"])
+    async def set_calibration(request):
+        data = json.loads(request.body)
+        operation = data["operation"]
+        forward_pin.off()
+        backward_pin.off()
+        if operation == "open":
+            calibrations["closed_to_open"] = data["duration"]
+            calibrations["state"] = "open"
+        elif operation == "close":
+            calibrations["open_to_closed"] = data["duration"]
+            calibrations["state"] = "close"
+        # {"closed_to_open": 10, "open_to_closed": 10}
+        with open("calibration.json", "w") as f:
+            json.dump(calibrations, f)
+        return {"success": True,"open_to_closed": calibrations["open_to_closed"], "closed_to_open": calibrations["closed_to_open"]}
+    
+    @app.route("/api/calibrate/toggle/<string:method>", methods=["GET"])
+    async def toggle_calibration(request, method):
+        if method == "open":
+            backward_pin.off()
+            forward_pin.on()
+        elif method == "close":
+            forward_pin.off()
+            backward_pin.on()
+        
+        return {"success": True}
+
     @app.route("/status",methods=["POST"])
     async def status_change(request):
-        print(request.body)
         data = json.loads(request.body)
         status = data["status"]
         my_id = data["id"]
         asyncio.create_task(change_state(status))
-        print("done")
         #{"new_status": "open" | "close"}
         return {"success": True}
 

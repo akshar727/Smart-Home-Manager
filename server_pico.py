@@ -199,7 +199,7 @@ if setup == 1:
 elif setup == 0:
     led = machine.Pin("LED", machine.Pin.OUT)
     led.off()
-    ip = ...
+    ip = ""
     next_id = 0
 
     with open(fname) as f:
@@ -316,7 +316,7 @@ elif setup == 0:
         for device in available_devices:
             if device["ip"] == request.client_addr[0]:
                 return {"success":True}
-        device = {"ip":request.client_addr[0],"location":data["location"],"type":data["type"],"id":next_id,"status":"open"}
+        device = {"ip":request.client_addr[0],"location":data["location"],"type":data["type"],"id":next_id,"status":data["state"]}
         available_devices.append(device)
         next_id += 1
         print(f"Found device at {data['location']} with ip {device['ip']}. Assigning ID of {device['id']}")
@@ -428,6 +428,20 @@ elif setup == 0:
         # disconnect from the device
         lock = False
         return {"success":True}
+    
+    @app.route("/api/calibrate/start/<int:id>",methods=["GET"])
+    async def calibrate_start(request, id):
+        # look for the device with that id and return the ip
+        target_device = None
+        for device in available_devices:
+            if device["id"] ==  id:
+                target_device = device
+                break
+        if target_device == None:
+            return {"success":False, "err": "Device not found or not registered"}
+        
+        return {"success":True,"ip":target_device["ip"]}
+
         
 
     @app.route("/terminate")
