@@ -320,7 +320,7 @@ elif setup == 0:
         available_devices.append(device)
         next_id += 1
         print(f"Found device at {data['location']} with ip {device['ip']}. Assigning ID of {device['id']}")
-        return {"success":True}
+        return {"success":True,"id":device["id"]}
     # user to server pico to client pico
     @app.route("/api/operation/<int:id>/<string:status>",methods=["GET"])
     async def run_pico(request, id,status):
