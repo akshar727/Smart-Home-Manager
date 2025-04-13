@@ -49,7 +49,6 @@ class ClientNetworkManager:
             return "Log cleared"
         
         async def ping_recieve(request):
-            data = json.loads(request.body)
             return {"success": True}
 
         self.app.route('/log.txt')(log)
@@ -62,9 +61,6 @@ class ClientNetworkManager:
 
     def register_methods(self):
         pass
-
-    def run_application(self, f):
-        asyncio.run(f)
         
 
 
@@ -89,7 +85,7 @@ class ClientNetworkManager:
             "state": self.state,
         }
         try:
-            r = requests.post(f"http://{self.server_ip}/api/net/id", json=k)
+            r = requests.post(f"http://{self.server_ip}/api/net/id", json=k,timeout=5)
             self.log(r.json())
             self.id = r.json().get('id')
             self.log("ID sent")
@@ -100,7 +96,7 @@ class ClientNetworkManager:
         server_ping_has_failed = False
         while True:
             try:
-                r = requests.post(f"http://{self.server_ip}/net/ping", json={"id": self.id},timeout=3)
+                r = requests.post(f"http://{self.server_ip}/net/ping",timeout=3)
                 self.log(r.json())
                 self.log("Pinged server successfully at ip of", self.client_ip)
                 if server_ping_has_failed:
@@ -132,7 +128,7 @@ class BlindsClientNetworkManager(ClientNetworkManager):
 
             await server
             await ping
-        self.run_application(main)
+        asyncio.run(main())
     
     def register_methods(self):
         async def change_state(status):

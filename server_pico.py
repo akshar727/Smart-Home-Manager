@@ -471,8 +471,9 @@ elif setup == 0:
                 except Exception as e:
                     print(e)
                     print(f"Device not reachable, IP is {device['ip']} and location is {device['location']}. Marked as offline")
-                    device["old_status"] = device["status"]
-                    device["status"] = "offline"
+                    if device["status"] != "offline":
+                        device["old_status"] = device["status"]
+                        device["status"] = "offline"
             await asyncio.sleep(20)
 
     @app.route("/net/ping",methods=["POST"])

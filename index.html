@@ -314,29 +314,24 @@
                         Device status:{" "}
                         {clientUpdatedDevices.find((d) => d.id === device.id)
                           ? (() => {
-                              const clientDevice = clientUpdatedDevices.find(
-                                (d) => d.id === device.id
-                              );
-                              if (clientDevice) {
-                                return clientDevice.status === "transit_open"
-                                  ? "Opening..."
-                                  : "Closing...";
-                              }
-                              if (device.status === "offline") {
-                                return "Offline";
-                              }
-                              if (device.status === "open") {
-                                return "Opened";
-                              }
-                              if (device.status === "close") {
-                                return "Closed";
-                              }
-                              if (device.status === "transit_open") {
-                                return "Opening...";
-                              }
-                              return "Closing...";
-                            })()
-                          : ""}
+                            const clientDevice = clientUpdatedDevices.find(
+                            (d) => d.id === device.id
+                            );
+                            if (clientDevice) {
+                            return clientDevice.status === "transit_open"
+                              ? "Opening..."
+                              : "Closing...";
+                            }
+                          })()
+                          : device.status === "offline"
+                          ? "Offline"
+                          : device.status === "open"
+                          ? "Opened"
+                          : device.status === "close"
+                          ? "Closed"
+                          : device.status === "transit_open"
+                          ? "Opening..."
+                          : "Closing..."}
                       </p>
                       <div className="sp">
                         <button
