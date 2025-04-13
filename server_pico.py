@@ -350,7 +350,9 @@ elif setup == 0:
         data = json.loads(request.body)
         _id = data["id"]
         target_device = None
+        print(data)
         print(available_devices)
+        print(request.client_addr[0])
         for device in available_devices:
             print(device)
             if device["id"] ==  _id:

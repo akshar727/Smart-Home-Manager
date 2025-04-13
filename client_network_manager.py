@@ -117,7 +117,7 @@ class BlindsClientNetworkManager(ClientNetworkManager):
                 await asyncio.sleep(self.calibrations["open_to_closed"])
                 self.backward_pin.off()
                 self.state = "close"
-            r = requests.post(f"http://{self.server_ip}/api/net/finish", json={"final_status": status, "id": self.client_ip})
+            r = requests.post(f"http://{self.server_ip}/api/net/finish", json={"final_status": status, "id": self.id})
             response = r.json()
             self.log(response)
             self.log("Finished moving motors")
