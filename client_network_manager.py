@@ -47,13 +47,24 @@ class ClientNetworkManager:
             logfile.truncate(0)
             logfile.flush()
             return "Log cleared"
+        
+        async def ping_recieve(request):
+            data = json.loads(request.body)
+            return {"success": True}
 
         self.app.route('/log.txt')(log)
+        self.app.route("/net/ping", methods=["POST"])(ping_recieve)
 
         self.app.route("/clearlog")(clear_log)
 
         CORS(self.app, allowed_origins=[f'http://{server_ip}'], allow_credentials=True)
         self.log("Created Microdot Application")
+
+    def register_methods(self):
+        pass
+
+    def run_application(self, f):
+        asyncio.run(f)
         
 
 
@@ -85,6 +96,22 @@ class ClientNetworkManager:
         except Exception as e:
             self.log("Failed to send ID:" + str(e))
 
+    async def ping_server(self):
+        server_ping_has_failed = False
+        while True:
+            try:
+                r = requests.post(f"http://{self.server_ip}/net/ping", json={"id": self.id},timeout=3)
+                self.log(r.json())
+                self.log("Pinged server successfully at ip of", self.client_ip)
+                if server_ping_has_failed:
+                    self.send_identification()
+                    self.log("Trying to send to reregister again")
+                    server_ping_has_failed = False
+            except Exception as e:
+                self.log("Failed to ping server:" + str(e))
+                server_ping_has_failed = True
+            await asyncio.sleep(20)
+
     
 
 
@@ -98,7 +125,14 @@ class BlindsClientNetworkManager(ClientNetworkManager):
         self.forward_pin = machine.Pin(27,machine.Pin.OUT)
         self.backward_pin = machine.Pin(28, machine.Pin.OUT)
         self.register_methods()
-        self.app.run(host=self.client_ip, port=80)
+
+        async def main():
+            server = asyncio.create_task(self.app.start_server(host=self.client_ip, port=80))
+            ping = asyncio.create_task(self.ping_server())
+
+            await server
+            await ping
+        self.run_application(main)
     
     def register_methods(self):
         async def change_state(status):
@@ -132,7 +166,6 @@ class BlindsClientNetworkManager(ClientNetworkManager):
             elif operation == "close":
                 self.calibrations["open_to_closed"] = data["duration"]
                 self.state = "close"
-            # {"closed_to_open": 10, "open_to_closed": 10}
             with open("calibration.json", "w") as f:
                 json.dump(self.calibrations, f)
             return {"success": True,"open_to_closed": self.calibrations["open_to_closed"], "closed_to_open": self.calibrations["closed_to_open"]}
@@ -160,3 +193,13 @@ class BlindsClientNetworkManager(ClientNetworkManager):
         self.app.route("/api/calibrate/toggle/<string:method>", methods=["GET"])(toggle_calibration)
         self.app.route("/api/calibrate/set", methods=["POST"])(set_calibration)
         self.log("Methods Registered")
+
+class CameraClientNetworkManager(ClientNetworkManager):
+    def __init__(self,location, server_ip, wlan_ssid, wlan_pwd) -> None:
+        super().__init__('camera',location, None, server_ip, wlan_ssid, wlan_pwd)
+        self.register_methods()
+
+        self.app.run(host=self.client_ip, port=80)
+    
+    def register_methods(self):
+        pass

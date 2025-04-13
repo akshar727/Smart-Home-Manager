@@ -11,6 +11,7 @@ __pycache__/
 .DS_Store
 wifi.json
 Blinds Manager.code-workspace
+blind_client_pico_old.py
 
 # Distribution / packaging
 .Python

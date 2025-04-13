@@ -331,6 +331,8 @@ elif setup == 0:
                 break
         if target_device == None:
             return {"success":False, "err": "Device not found or not registered"}
+        if target_device["status"] == "offline":
+            return {"success":False, "err": "Device is offline"}
         req_data = {"status":status,"id":target_device["id"]}
         target_device["status"] = "transit_open" if status == "open" else "transit_close"
         print(target_device["ip"])
@@ -350,9 +352,6 @@ elif setup == 0:
         data = json.loads(request.body)
         _id = data["id"]
         target_device = None
-        print(data)
-        print(available_devices)
-        print(request.client_addr[0])
         for device in available_devices:
             print(device)
             if device["id"] ==  _id:
@@ -443,6 +442,8 @@ elif setup == 0:
                 break
         if target_device == None:
             return {"success":False, "err": "Device not found or not registered"}
+        if target_device["status"] == "offline":
+            return {"success":False, "err": "Device is offline"}
         
         return {"success":True,"ip":target_device["ip"]}
 
@@ -456,15 +457,37 @@ elif setup == 0:
     @app.errorhandler(404)
     async def not_found(request):
         return {'error': 'Resource not found'}, 404
+    
+    async def ping_clients():
+        while True:
+            for device in available_devices:
+                try:
+                    r = requests.post(f"http://{device['ip']}/net/ping",timeout=3)
+                    print(r.status_code)
+                    print(f"Device reachable, IP is {device['ip']} and location is {device['location']}")
+                    if device.get("old_status") != None:
+                        device["status"] = device["old_status"]
+                        device["old_status"] = None
+                except Exception as e:
+                    print(e)
+                    print(f"Device not reachable, IP is {device['ip']} and location is {device['location']}. Marked as offline")
+                    device["old_status"] = device["status"]
+                    device["status"] = "offline"
+            await asyncio.sleep(20)
+
+    @app.route("/net/ping",methods=["POST"])
+    async def ping(request):
+        # get pings from clients and respond
+        return {"success":True}
+        
+
     print("running")
     async def main():
         server = asyncio.create_task(app.start_server(port=80,debug=True,host="0.0.0.0"))
         advertising = asyncio.create_task(ble_advertise())
-
-        # ... do other asynchronous work here ...
-
-        # cleanup before ending the application
+        client_pings = asyncio.create_task(ping_clients())
         await server
         await advertising
+        await client_pings
     asyncio.run(main())
 
