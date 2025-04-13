@@ -55,7 +55,6 @@ class ClientNetworkManager:
         CORS(self.app, allowed_origins=[f'http://{server_ip}'], allow_credentials=True)
         self.log("Created Microdot Application")
         
-        self.app.run(host=self.client_ip, port=80)
 
 
     def connect_to_wifi(self):
@@ -99,6 +98,7 @@ class BlindsClientNetworkManager(ClientNetworkManager):
         self.forward_pin = machine.Pin(27,machine.Pin.OUT)
         self.backward_pin = machine.Pin(28, machine.Pin.OUT)
         self.register_methods()
+        self.app.run(host=self.client_ip, port=80)
     
     def register_methods(self):
         async def change_state(status):
@@ -119,6 +119,7 @@ class BlindsClientNetworkManager(ClientNetworkManager):
                 self.state = "close"
             r = requests.post(f"http://{self.server_ip}/api/net/finish", json={"final_status": status, "id": self.client_ip})
             response = r.json()
+            self.log(response)
             self.log("Finished moving motors")
         async def set_calibration(request):
             data = json.loads(request.body)
@@ -158,3 +159,4 @@ class BlindsClientNetworkManager(ClientNetworkManager):
         self.app.route("/status",methods=["POST"])(status_change)
         self.app.route("/api/calibrate/toggle/<string:method>", methods=["GET"])(toggle_calibration)
         self.app.route("/api/calibrate/set", methods=["POST"])(set_calibration)
+        self.log("Methods Registered")

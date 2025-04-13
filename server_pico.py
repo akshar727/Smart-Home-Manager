@@ -350,7 +350,9 @@ elif setup == 0:
         data = json.loads(request.body)
         _id = data["id"]
         target_device = None
+        print(available_devices)
         for device in available_devices:
+            print(device)
             if device["id"] ==  _id:
                 target_device = device
                 break
