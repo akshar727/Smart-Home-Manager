@@ -8,10 +8,10 @@ import json
 import os
 import machine
 
-logfile = open('log.txt', 'a',0)
-# clear the log file
-# duplicate stdout and stderr to the log file
-os.dupterm(logfile) # type: ignore
+# logfile = open('log.txt', 'a',0)
+# # clear the log file
+# # duplicate stdout and stderr to the log file
+# os.dupterm(logfile) # type: ignore
 
 
 
@@ -29,32 +29,32 @@ class ClientNetworkManager:
         led.off()
         self.send_identification()
         self.app = Microdot()
-        async def log(request):
-            # stream the log.txt file in parts using a generator and a def function
-            logfile.flush()
-            def generate():
-                with open('log.txt') as f:
-                    while True:
-                        line = f.readline()
-                        if not line:
-                            break
-                        yield line
-            return generate(), {'Content-Type': 'text/css'}
+        # async def log(request):
+        #     # stream the log.txt file in parts using a generator and a def function
+        #     # logfile.flush()
+        #     def generate():
+        #         with open('log.txt') as f:
+        #             while True:
+        #                 line = f.readline()
+        #                 if not line:
+        #                     break
+        #                 yield line
+        #     return generate(), {'Content-Type': 'text/css'}
 
-        async def clear_log(request):
-            logfile.flush()
-            logfile.seek(0)
-            logfile.truncate(0)
-            logfile.flush()
-            return "Log cleared"
+        # async def clear_log(request):
+        #     logfile.flush()
+        #     logfile.seek(0)
+        #     logfile.truncate(0)
+        #     logfile.flush()
+        #     return "Log cleared"
         
         async def ping_recieve(request):
             return {"success": True}
 
-        self.app.route('/log.txt')(log)
+        # self.app.route('/log.txt')(log)
         self.app.route("/net/ping", methods=["POST"])(ping_recieve)
 
-        self.app.route("/clearlog")(clear_log)
+        # self.app.route("/clearlog")(clear_log)
 
         CORS(self.app, allowed_origins=[f'http://{server_ip}'], allow_credentials=True)
         self.log("Created Microdot Application")
@@ -85,7 +85,7 @@ class ClientNetworkManager:
             "state": self.state,
         }
         try:
-            r = requests.post(f"http://{self.server_ip}/api/net/id", json=k,timeout=5)
+            r = requests.post(f"http://{self.server_ip}/api/net/id", json=k,timeout=8)
             self.log(r.json())
             self.id = r.json().get('id')
             self.log("ID sent")
@@ -96,16 +96,34 @@ class ClientNetworkManager:
         server_ping_has_failed = False
         while True:
             try:
-                r = requests.post(f"http://{self.server_ip}/net/ping",timeout=3)
-                self.log(r.json())
+                r = requests.post(f"http://{self.server_ip}/net/ping",timeout=8)
                 self.log("Pinged server successfully at ip of", self.client_ip)
                 if server_ping_has_failed:
                     self.send_identification()
                     self.log("Trying to send to reregister again")
                     server_ping_has_failed = False
             except Exception as e:
-                self.log("Failed to ping server:" + str(e))
+                self.log("Failed to ping server trying twice more:" + str(e))
                 server_ping_has_failed = True
+                try:
+                    r = requests.post(f"http://{self.server_ip}/net/ping")
+                    self.log("Pinged server successfully at ip of", self.client_ip)
+                    server_ping_has_failed = False
+                    await asyncio.sleep(20)
+                    continue
+                except Exception as e:
+                    self.log("Failed to ping server again:" + str(e))
+                    server_ping_has_failed = True
+
+                try:
+                    r = requests.post(f"http://{self.server_ip}/net/ping")
+                    self.log("Pinged server successfully at ip of", self.client_ip)
+                    server_ping_has_failed = False
+                    await asyncio.sleep(20)
+                    continue
+                except Exception as e:
+                    self.log("Failed to ping server again:" + str(e))
+                    server_ping_has_failed = True
             await asyncio.sleep(20)
 
     
@@ -124,10 +142,10 @@ class BlindsClientNetworkManager(ClientNetworkManager):
 
         async def main():
             server = asyncio.create_task(self.app.start_server(host=self.client_ip, port=80))
-            ping = asyncio.create_task(self.ping_server())
+            # ping = asyncio.create_task(self.ping_server())
 
             await server
-            await ping
+            # await ping
         asyncio.run(main())
     
     def register_methods(self):

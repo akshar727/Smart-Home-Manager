@@ -20,23 +20,53 @@
     </div>
 
     <script type="text/babel">
+      const evtSource = new EventSource("/devices");
       const _devices = [];
-      fetch("/api/updates")
-        .then((res) => res.json())
-        .then((data) => {
-          _devices = organizeData(data);
-        })
-        .catch((error) => {
-          // mostly dev purposes but also incase the fetch fails
-          var organized = organizeData(_devices);
-          setDevices(() => {
-            organized.blind = organized.blind.map((device) => ({
-              ...device,
-              status: Math.random() > 0.5 ? "open" : "closed",
-            }));
-            return organized;
-          });
-        });
+      // fetch("/api/updates")
+      //   .then((res) => res.json())
+      //   .then((data) => {
+      //     _devices = organizeData(data);
+      //   })
+      //   .catch((error) => {
+      //     // mostly dev purposes but also incase the fetch fails
+      //     var organized = organizeData(_devices);
+      //     setDevices(() => {
+      //       organized.blind = organized.blind.map((device) => ({
+      //         ...device,
+      //         status: Math.random() > 0.5 ? "open" : "closed",
+      //       }));
+      //       return organized;
+      //     });
+      //   });
+
+      const NetworkingContext = React.createContext();
+
+      function NetworkingAgent(props) {
+        // use the sse written above to get the updates and then use it in a way where i can wrap it around all the other components and they can access the devices
+        const [devices, setDevices] = React.useState(_devices);
+        React.useEffect(() => {
+          evtSource.onmessage = (event) => {
+            const updatedData = JSON.parse(event.data);
+            setDevices((prevDevices) => {
+              const organized = organizeData(updatedData);
+              return {
+                ...prevDevices,
+                ...organized,
+              };
+            });
+          };
+
+          return () => {
+            evtSource.close();
+          };
+        }, []);
+
+        return (
+          <NetworkingContext.Provider value={{ devices, setDevices }}>
+            {props.children}
+          </NetworkingContext.Provider>
+        );
+      }
 
       function organizeData(data) {
         if (Object.keys(data).length === 0) {
@@ -207,76 +237,26 @@
         );
       }
       function DeviceWidgets() {
-        const [devices, setDevices] = React.useState(organizeData(_devices));
-        const [clientUpdatedDevices, setClientUpdatedDevices] = React.useState(
-          []
-        );
-        // create the same setinterval function to fetch the updates
-        React.useEffect(() => {
-          fetch("/api/updates")
-            .then((res) => res.json())
-            .then((data) => {
-              // console.log(organizeData(data));
-              setDevices(organizeData(data));
-            })
-            .catch((error) => {
-              // mostly dev purposes but also incase the fetch fails
-              var organized = organizeData(_devices);
-              setDevices(() => {
-                organized.blind = organized.blind.map((device) => ({
-                  ...device,
-                  status: Math.random() > 0.5 ? "open" : "closed",
-                }));
-                return organized;
-              });
-            });
-          //Implementing the setInterval method
-          const interval = setInterval(() => {
-            fetch("/api/updates")
-              .then((res) => res.json())
-              .then((data) => {
-                console.log(organizeData(data));
-                setDevices(organizeData(data));
-              })
-              .catch((error) => {
-                // mostly dev purposes but also incase the fetch fails
-                var organized = organizeData(_devices);
-                setDevices(() => {
-                  organized.blind = organized.blind.map((device) => ({
-                    ...device,
-                    status: Math.random() > 0.5 ? "open" : "closed",
-                  }));
-                  return organized;
-                });
-              });
-          }, 5000);
-          //Clearing the interval
-          return () => clearInterval(interval);
-        }, []);
-        // create a function that can fetch a device operation
+        const { devices } = React.useContext(NetworkingContext);
+        //Implementing the setInterval method
+        //Clearing the interval
 
         function fetchOperation(id, operation) {
-          setDevices((prevDevices) => {
-            const newDevices = { ...prevDevices };
-            newDevices.blind = newDevices.blind.map((device) => {
-              if (device.id === id) {
-                return {
-                  ...device,
-                  status:
-                    operation === "open" ? "transit_open" : "transit_close",
-                };
-              }
-              return device;
-            });
-            return newDevices;
-          });
-          setClientUpdatedDevices((prev) => [
-            ...prev,
-            {
-              id,
-              status: operation === "open" ? "transit_open" : "transit_close",
-            },
-          ]);
+          // setDevices((prevDevices) => {
+          // const newDevices = { ...prevDevices };
+          // newDevices.blind = newDevices.blind.map((device) => {
+          //   if (device.id === id) {
+          //   return {
+          //     ...device,
+          //     status:
+          //     operation === "open" ? "transit_open" : "transit_close",
+          //   };
+          //   }
+          //   return device;
+          // });
+          // return newDevices;
+          // });
+
           fetch(`/api/operation/${id}/${operation}`)
             .then((res) => res.json())
             .then((data) => {
@@ -285,10 +265,19 @@
                   `Operation ${operation} on device ${id} was successful.`
                 );
 
-                // change that device's status to the operation be Opening... or Closing...
-                setClientUpdatedDevices((prev) =>
-                  prev.filter((device) => device.id !== id)
-                );
+                // setDevices((prevDevices) => {
+                //   const updatedDevices = { ...prevDevices };
+                //   updatedDevices.blind = updatedDevices.blind.map((device) => {
+                //   if (device.id === id) {
+                //     return {
+                //     ...device,
+                //     status: operation === "open" ? "open" : "close",
+                //     };
+                //   }
+                //   return device;
+                //   });
+                //   return updatedDevices;
+                // });
               } else {
                 console.log(
                   "An error occurred while performing the operation. Please try again."
@@ -312,18 +301,7 @@
                       <h3>{device.location}</h3>
                       <p>
                         Device status:{" "}
-                        {clientUpdatedDevices.find((d) => d.id === device.id)
-                          ? (() => {
-                            const clientDevice = clientUpdatedDevices.find(
-                            (d) => d.id === device.id
-                            );
-                            if (clientDevice) {
-                            return clientDevice.status === "transit_open"
-                              ? "Opening..."
-                              : "Closing...";
-                            }
-                          })()
-                          : device.status === "offline"
+                        {device.status === "offline"
                           ? "Offline"
                           : device.status === "open"
                           ? "Opened"
@@ -387,50 +365,27 @@
       }
 
       function CalibrateDevice() {
-        const [devices, setDevices] = React.useState(organizeData(_devices));
+        const { devices } = React.useContext(NetworkingContext);
         const [calibrating, setCalibrating] = React.useState(null);
         const [startTime, setStartTime] = React.useState(null);
 
-        React.useEffect(() => {
-          fetch("/api/updates")
-            .then((res) => res.json())
-            .then((data) => {
-              setDevices(organizeData(data));
-            })
-            .catch((error) => {
-              const organized = organizeData(_devices);
-              setDevices(() => {
-                organized.blind = organized.blind.map((device) => ({
-                  ...device,
-                  status: Math.random() > 0.5 ? "open" : "closed",
-                }));
-                return organized;
-              });
-            });
-        }, []);
-
         function startCalibration(id, operation) {
-          fetch(`/api/calibrate/start/${id}`)
-            .then((res) => res.json())
-            .then((data) => {
-              if (data.ip) {
-                setCalibrating({ id, operation, ip: data.ip });
-                fetch(`http://${data.ip}/api/calibrate/toggle/${operation}`)
-                  .then((res) => {
-                    if (res.ok) {
-                      if (!startTime) {
-                        setStartTime(Date.now());
-                      }
-                    } else {
-                      alert("Failed to toggle motor. Please try again.");
-                    }
-                  })
-                  .catch(() => {
-                    alert(
-                      "An error occurred while toggling the motor. Please try again."
-                    );
-                  });
+          const data = devices.blind.find((device) => device.id === id);
+          setCalibrating({ id, operation, ip: data.ip });
+          fetch(`http://${data.ip}/api/calibrate/toggle/${operation}`)
+            .then((res) => {
+              if (res.ok) {
+                if (!startTime) {
+                  setStartTime(Date.now());
+                }
+              } else {
+                alert("Failed to toggle motor. Please try again.");
               }
+            })
+            .catch(() => {
+              alert(
+                "An error occurred while toggling the motor. Please try again."
+              );
             });
         }
 
@@ -547,12 +502,6 @@
             <h3>Server Uptime</h3>
             <p>Server has been up for {serverInfo.time} seconds</p>
             <h3>Server Log file</h3>
-            <p>
-              View the server log file{" "}
-              <a style={{ padding: "0" }} href="/log.txt">
-                here
-              </a>
-            </p>
           </>
         );
       }
@@ -567,25 +516,52 @@
         ReactDOM.unmountComponentAtNode(document.getElementById("app"));
         switch (currentPage) {
           case 0:
-            ReactDOM.render(<DeviceWidgets />, document.getElementById("app"));
+            ReactDOM.render(
+              <NetworkingAgent>
+                <DeviceWidgets />
+              </NetworkingAgent>,
+              document.getElementById("app")
+            );
             break;
           case 1:
-            ReactDOM.render(<SettingsScreen />, document.getElementById("app"));
+            ReactDOM.render(
+              <NetworkingAgent>
+                <SettingsScreen />
+              </NetworkingAgent>,
+              document.getElementById("app")
+            );
             break;
           case 2:
-            ReactDOM.render(<ServerInfo />, document.getElementById("app"));
+            ReactDOM.render(
+              <NetworkingAgent>
+                <ServerInfo />
+              </NetworkingAgent>,
+              document.getElementById("app")
+            );
             break;
           case 3:
-            ReactDOM.render(<FindNewDevice />, document.getElementById("app"));
+            ReactDOM.render(
+              <NetworkingAgent>
+                <FindNewDevice />
+              </NetworkingAgent>,
+              document.getElementById("app")
+            );
             break;
           case 4:
             ReactDOM.render(
-              <CalibrateDevice />,
+              <NetworkingAgent>
+                <CalibrateDevice />
+              </NetworkingAgent>,
               document.getElementById("app")
             );
             break;
           default:
-            ReactDOM.render(<DeviceWidgets />, document.getElementById("app"));
+            ReactDOM.render(
+              <NetworkingAgent>
+                <DeviceWidgets />
+              </NetworkingAgent>,
+              document.getElementById("app")
+            );
         }
 
         ReactDOM.render(<Sidebar />, document.querySelector(".sidebar"));

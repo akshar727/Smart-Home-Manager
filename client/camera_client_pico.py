@@ -6,7 +6,7 @@ from time import sleep
 from microdot.cors import CORS
 import urequests as requests # type: ignore
 from microdot import Microdot # type: ignore
-from client_setup import ClientSetupManager
+from client.client_setup import ClientSetupManager
 
 fname = "client_data.json"
 setup = True

@@ -4,6 +4,7 @@ import os
 import json
 from microdot.cors import CORS
 from microdot.microdot import Microdot, send_file, Response
+from microdot.sse import with_sse
 import urequests as requests
 import machine
 import aioble
@@ -25,10 +26,11 @@ def uid():
 
 
 
-logfile = open('log.txt', 'a',0)
-# clear the log file
-# duplicate stdout and stderr to the log file
-os.dupterm(logfile) # type: ignore
+
+# logfile = open('log.txt', 'a',0)
+# # clear the log file
+# # duplicate stdout and stderr to the log file
+# os.dupterm(logfile) # type: ignore
 
     
 MODE_CBC = 2
@@ -113,6 +115,7 @@ def machine_reset():
 
 fname = "wifi.json"
 test_fname = "wifi_test.json"
+devices_name = "devices.json"
 setup = 1
 if isfile(fname):
     setup = 0
@@ -129,6 +132,17 @@ if isfile(test_fname):
     except NetworkError:
         os.remove(test_fname)
         setup = 2
+
+
+# load a file named devices.json
+next_id = 0
+
+if isfile(devices_name):
+    with open(devices_name) as f:
+        data = json.load(f)
+        available_devices = data["devices"]
+        next_id = data["next_id"]
+
 
 if setup == 1:
     ap_app= Microdot()
@@ -200,7 +214,6 @@ elif setup == 0:
     led = machine.Pin("LED", machine.Pin.OUT)
     led.off()
     ip = ""
-    next_id = 0
 
     with open(fname) as f:
         cred = json.load(f)
@@ -243,7 +256,7 @@ elif setup == 0:
 
     connected = False
 
-
+    print(available_devices)
 
 
     print('Connecting to Network...')
@@ -278,30 +291,26 @@ elif setup == 0:
                 print("Disconnected")
 
 
-
-    # asyncio.create_task(ble_advertise())
     
-    @app.route('/log.txt')
-    async def log(request):
-        # stream the log.txt file in parts using a generator and a def function
-        logfile.flush()
-        def generate():
-            with open('log.txt') as f:
-                while True:
-                    line = f.readline()
-                    if not line:
-                        break
-                    yield line
-        return generate(), {'Content-Type': 'text/css'}
+    # @app.route('/log.txt')
+    # async def log(request):
+    #     # stream the log.txt file in parts using a generator and a def function
+    #     logfile.flush()
+    #     def generate():
+    #         with open('log.txt') as f:
+    #             while True:
+    #                 line = f.readline()
+    #                 if not line:
+    #                     break
+    #                 yield line
+    #     return generate(), {'Content-Type': 'text/css'}
     
 
-    @app.route("/clearlog")
-    async def clear_log(request):
-        logfile.flush()
-        logfile.seek(0)
-        logfile.truncate(0)
-        logfile.flush()
-        return "Log cleared"
+    # @app.route("/clearlog")
+    # async def clear_log(request):
+    #     logfile.flush()
+    #     open("log.txt","w").close()
+    #     return "Log cleared"
         
     
     @app.route('/index.css')
@@ -315,11 +324,15 @@ elif setup == 0:
         # check if the device is already registered if so then just act like it was successful
         for device in available_devices:
             if device["ip"] == request.client_addr[0]:
-                return {"success":True}
+                print(f"The existing device at {device['location']} and ip {device['ip']} has reregistered...")
+                return {"success":True, "id":device["id"]}
         device = {"ip":request.client_addr[0],"location":data["location"],"type":data["type"],"id":next_id,"status":data["state"]}
         available_devices.append(device)
         next_id += 1
-        print(f"Found device at {data['location']} with ip {device['ip']}. Assigning ID of {device['id']}")
+        with open(devices_name,"w") as f:
+            json.dump({"next_id":next_id, "devices":available_devices},f)
+        print(f"Found a NEW device at {data['location']} with ip {device['ip']}. Assigning ID of {device['id']}")
+        print(available_devices)
         return {"success":True,"id":device["id"]}
     # user to server pico to client pico
     @app.route("/api/operation/<int:id>/<string:status>",methods=["GET"])
@@ -363,15 +376,6 @@ elif setup == 0:
         return {"success":True}
         
     lock = False
-    @app.route("/api/updates")
-    async def updates(request):
-
-        statuses = []
-        for dev in available_devices:
-            statuses.append({"location":dev["location"],"status":dev["status"],"type":dev["type"],"id":dev["id"]})
-
-        
-        return statuses
     def get_elapsed_time():
         return time.ticks_ms() // 1000  # Convert milliseconds to seconds
     def format_uptime(seconds):
@@ -459,29 +463,67 @@ elif setup == 0:
         return {'error': 'Resource not found'}, 404
     
     async def ping_clients():
+        # truncate the logfile on start
         while True:
+            # if the logfile is more than 200 lines, remove the first couple lines till it goes back to 200
+            
+            # check if the device is reachable
+            
             for device in available_devices:
                 try:
-                    r = requests.post(f"http://{device['ip']}/net/ping",timeout=3)
+                    r = requests.post(f"http://{device['ip']}/net/ping",timeout=8)
                     print(r.status_code)
                     print(f"Device reachable, IP is {device['ip']} and location is {device['location']}")
                     if device.get("old_status") != None:
                         device["status"] = device["old_status"]
                         device["old_status"] = None
                 except Exception as e:
-                    print(e)
-                    print(f"Device not reachable, IP is {device['ip']} and location is {device['location']}. Marked as offline")
-                    if device["status"] != "offline":
-                        device["old_status"] = device["status"]
-                        device["status"] = "offline"
+                    print(f"Device not reachable, IP is {device['ip']} and location is {device['location']}.")
+                    # try two more times to ping and if both fail then mark as offline
+                    fail_times = 0
+                    try:
+                        r = requests.post(f"http://{device['ip']}/net/ping",timeout=8)
+                        print(r.status_code)
+                        print(f"Device reachable after 2nd try, IP is {device['ip']} and location is {device['location']}")
+                        continue
+                    except Exception as e:
+                        fail_times += 1
+                        print("2nd ping failed, trying once more")
+
+                    try:
+                        r = requests.post(f"http://{device['ip']}/net/ping",timeout=8)
+                        print(r.status_code)
+                        print(f"Device reachable after 3rd try, IP is {device['ip']} and location is {device['location']}")
+                        continue
+                    except Exception as e:
+                        fail_times += 1
+                        print("3rd ping failed, marking as offline")
+
+                    if fail_times == 2:
+                        if device["status"] != "offline":
+                            device["old_status"] = device["status"]
+                            device["status"] = "offline"
             await asyncio.sleep(20)
 
     @app.route("/net/ping",methods=["POST"])
     async def ping(request):
-        # get pings from clients and respond
         return {"success":True}
         
-
+    @app.route("/devices")
+    @with_sse
+    async def devices_sse(request,sse):
+        # test the sse
+        print("Begin setting old")
+        old = available_devices
+        print("End setting old")
+        await sse.send(available_devices)
+        while True:
+            # print(f"Old instance: {old} new instance: {available_devices}")
+            if available_devices != old:
+                print(f"Old instance: {old} new instance: {available_devices}")
+                await sse.send(available_devices)
+                old = available_devices
+            await asyncio.sleep(1)
     print("running")
     async def main():
         server = asyncio.create_task(app.start_server(port=80,debug=True,host="0.0.0.0"))
