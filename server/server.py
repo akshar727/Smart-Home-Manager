@@ -1,7 +1,7 @@
 import asyncio
 import os
 import json
-from flask import Flask, request, jsonify, send_from_directory #type: ignore
+from flask import Flask, request, jsonify, send_from_directory, Response #type: ignore
 from flask_cors import CORS #type: ignore
 # from bleak import BleakScanner, BleakClient
 import threading
@@ -220,6 +220,20 @@ async def ping_clients():
                 device["status"] = "offline"
                 
         await asyncio.sleep(120)
+
+@app.route('/devices')
+def stream():
+    def event_stream():
+        yield "data: {}\n\n".format(available_devices)
+        while True:
+            # old_devices = available_devices.copy()
+            time.sleep(1)
+            # if old_devices != available_devices:
+            #     # Check if the devices list has changed
+            #     print("Devices list has changed")
+            #     # Send the updated devices list to the client
+            yield f"data: {available_devices}\n\n"
+    return Response(event_stream(), mimetype="text/event-stream")
 
 
 if __name__ == "__main__":

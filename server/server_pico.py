@@ -254,6 +254,17 @@ elif setup == 0:
     print("Starting BLE")
     aioble.register_services(device_info, wifi_service)
 
+    async def ble_advertise():    
+        global connected, connection
+        while True:
+            connected = False
+            async with await aioble.advertise(ADV_INTERVAL_MS, name="Pico W Server",appearance=_BLE_APPEARANCE_GENERIC_UNKNOWN,services=[_GENERIC]) as connection:
+                print("Connection from ", connection.device)
+                connected = True
+                await connection.disconnected()
+                connected = False
+                print("Disconnected")
+
     connected = False
 
     print(available_devices)
@@ -277,18 +288,6 @@ elif setup == 0:
     async def index(request):
         return send_file("index.html")
     
-
-    async def ble_advertise():
-        
-        global connected, connection
-        while True:
-            connected = False
-            async with await aioble.advertise(ADV_INTERVAL_MS, name="Pico W Server",appearance=_BLE_APPEARANCE_GENERIC_UNKNOWN,services=[_GENERIC]) as connection:
-                print("Connection from ", connection.device)
-                connected = True
-                await connection.disconnected()
-                connected = False
-                print("Disconnected")
 
 
     

@@ -46,7 +46,7 @@
         const [devices, setDevices] = React.useState(_devices);
         React.useEffect(() => {
           evtSource.onmessage = (event) => {
-            const updatedData = JSON.parse(event.data);
+            const updatedData = JSON.parse(event.data.replace(/'/g, '"'));
             setDevices((prevDevices) => {
               const organized = organizeData(updatedData);
               return {
