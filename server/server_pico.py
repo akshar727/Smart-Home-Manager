@@ -19,12 +19,12 @@ import os
 import micropython
 import cryptolib
 
-
+from machine import WDT
 def uid():
     return "{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}".format(*machine.unique_id())
 
 
-
+wdt = ...
 
 
 # logfile = open('log.txt', 'a',0)
@@ -292,27 +292,8 @@ elif setup == 0:
 
 
     
-    # @app.route('/log.txt')
-    # async def log(request):
-    #     # stream the log.txt file in parts using a generator and a def function
-    #     logfile.flush()
-    #     def generate():
-    #         with open('log.txt') as f:
-    #             while True:
-    #                 line = f.readline()
-    #                 if not line:
-    #                     break
-    #                 yield line
-    #     return generate(), {'Content-Type': 'text/css'}
-    
-
-    # @app.route("/clearlog")
-    # async def clear_log(request):
-    #     logfile.flush()
-    #     open("log.txt","w").close()
-    #     return "Log cleared"
         
-    
+
     @app.route('/index.css')
     async def index_css(request):
         return send_file("index.css")
@@ -321,6 +302,7 @@ elif setup == 0:
     async def register(request):
         global next_id
         data = request.json
+        # wdt.feed()
         # check if the device is already registered if so then just act like it was successful
         for device in available_devices:
             if device["ip"] == request.client_addr[0]:
@@ -337,6 +319,7 @@ elif setup == 0:
     # user to server pico to client pico
     @app.route("/api/operation/<int:id>/<string:status>",methods=["GET"])
     async def run_pico(request, id,status):
+        # wdt.feed()
         target_device = None
         for device in available_devices:
             if device["id"] ==  id:
@@ -436,20 +419,6 @@ elif setup == 0:
         lock = False
         return {"success":True}
     
-    @app.route("/api/calibrate/start/<int:id>",methods=["GET"])
-    async def calibrate_start(request, id):
-        # look for the device with that id and return the ip
-        target_device = None
-        for device in available_devices:
-            if device["id"] ==  id:
-                target_device = device
-                break
-        if target_device == None:
-            return {"success":False, "err": "Device not found or not registered"}
-        if target_device["status"] == "offline":
-            return {"success":False, "err": "Device is offline"}
-        
-        return {"success":True,"ip":target_device["ip"]}
 
         
 
@@ -465,6 +434,7 @@ elif setup == 0:
     async def ping_clients():
         # truncate the logfile on start
         while True:
+            # wdt.feed()
             # if the logfile is more than 200 lines, remove the first couple lines till it goes back to 200
             
             # check if the device is reachable
@@ -503,11 +473,9 @@ elif setup == 0:
                         if device["status"] != "offline":
                             device["old_status"] = device["status"]
                             device["status"] = "offline"
-            await asyncio.sleep(20)
 
-    @app.route("/net/ping",methods=["POST"])
-    async def ping(request):
-        return {"success":True}
+            await asyncio.sleep(120)
+
         
     @app.route("/devices")
     @with_sse
@@ -518,6 +486,7 @@ elif setup == 0:
         print("End setting old")
         await sse.send(available_devices)
         while True:
+            # wdt.feed()
             # print(f"Old instance: {old} new instance: {available_devices}")
             if available_devices != old:
                 print(f"Old instance: {old} new instance: {available_devices}")
@@ -526,11 +495,17 @@ elif setup == 0:
             await asyncio.sleep(1)
     print("running")
     async def main():
+        # global wdt
+        # wdt = WDT(timeout=8000)
         server = asyncio.create_task(app.start_server(port=80,debug=True,host="0.0.0.0"))
+        
         advertising = asyncio.create_task(ble_advertise())
-        client_pings = asyncio.create_task(ping_clients())
+        
+        # client_pings = asyncio.create_task(ping_clients())
+        
         await server
         await advertising
-        await client_pings
+        # await client_pings
+        # wdt.feed()
     asyncio.run(main())
 
