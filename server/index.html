@@ -57,7 +57,6 @@
           };
 
           return () => {
-            evtSource.close();
           };
         }, []);
 
@@ -86,14 +85,13 @@
       function Sidebar() {
         const navList = React.useRef(null);
         function changeScreen(page) {
+          console.log(currentPage)
           currentPage = page;
           for (let i = 0; i < navList.current.children.length; i++) {
-            if (i !== currentPage) {
               navList.current.children[i].classList.remove("active");
-            }
           }
           // get the html element of the navlist. Find the nth (li) child, and add the active class to that child
-          navList.current.children[currentPage].classList.add("active");
+          document.getElementById(`btn${page}`).classList.add("active");
           // remove the active class from the other children
           rerender();
         }
@@ -114,13 +112,14 @@
               ></i>
             </div>
             <ul id="navlist" ref={navList}>
-              <li>
+              <li id="btn0" className="active">
                 <a href="#" onClick={() => changeScreen(0)}>
                   <i className="fa-regular fa-house"></i>
                   <span className="nav-item">Dashboard</span>
                   <span className="tooltip">Dashboard</span>
                 </a>
               </li>
+              {/*
               <li>
                 <a href="#" onClick={() => changeScreen(1)}>
                   <i className="fa-regular fa-gear"></i>
@@ -128,27 +127,29 @@
                   <span className="tooltip">Settings</span>
                 </a>
               </li>
-              <li>
+            */}
+              <li id="btn2">
                 <a href="#" onClick={() => changeScreen(2)}>
                   <i className="fa-regular fa-info"></i>
                   <span className="nav-item">Server Info</span>
                   <span className="tooltip">Server Info</span>
                 </a>
               </li>
-              <li>
+              <li id="btn3">
                 <a href="#" onClick={() => changeScreen(3)}>
                   <i className="fa-regular fa-bluetooth"></i>
                   <span className="nav-item">Add A Device</span>
                   <span className="tooltip">Add A Device</span>
                 </a>
               </li>
-              <li>
+              <li id="btn4">
                 <a href="#" onClick={() => changeScreen(4)}>
                   <i className="fa-regular fa-gear"></i>
                   <span className="nav-item">Calibrate A Device</span>
                   <span className="tooltip">Calibrate A Device</span>
                 </a>
               </li>
+              {/*
               <li>
                 <a href="#">
                   <i className="fa-regular fa-gear"></i>
@@ -156,6 +157,7 @@
                   <span className="tooltip">Dashboard</span>
                 </a>
               </li>
+              */}
             </ul>
           </>
         );

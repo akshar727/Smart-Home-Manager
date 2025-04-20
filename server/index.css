@@ -71,7 +71,7 @@
 /* .op-btn > i {
   font-size: 1.2rem;
 } */
-.op-btn:hover :not(:disabled) {
+.op-btn:hover:not(:disabled) {
   background-color: #4787fd;
   cursor: pointer;
 }

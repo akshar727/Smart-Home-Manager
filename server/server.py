@@ -177,13 +177,6 @@ def check_for_devices():
 #     return jsonify({"success": True})
 
 
-# @app.route("/terminate")
-# def terminate():
-#     func = request.environ.get('werkzeug.server.shutdown')
-#     if func is None:
-#         raise RuntimeError('Not running with the Werkzeug Server')
-#     func()
-#     return "Shutdown initiated…"
 
 
 @app.errorhandler(404)
