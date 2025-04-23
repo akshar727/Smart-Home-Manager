@@ -1,6 +1,7 @@
 import asyncio
 import os
 import json
+import sys
 from flask import Flask, request, jsonify, send_from_directory, Response #type: ignore
 from flask_cors import CORS #type: ignore
 # from bleak import BleakScanner, BleakClient
@@ -9,6 +10,7 @@ import time
 import requests
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes # type: ignore
 from cryptography.hazmat.backends import default_backend #type: ignore
+import queue
 
 # Flask app setup
 app = Flask(__name__)
@@ -144,8 +146,7 @@ def finish_status_change():
 
 @app.route("/api/server-info")
 def server_info():
-    uptime = format_uptime(get_elapsed_time())
-    return jsonify({"uptime": uptime})
+    return jsonify({"uptime": get_elapsed_time()})
 
 
 @app.route("/api/network")
@@ -183,9 +184,10 @@ def check_for_devices():
 def not_found(e):
     return jsonify({'error': 'Resource not found'}), 404
 
+start_time = int(time.time())
 
 def get_elapsed_time():
-    return int(time.time())  # Seconds since epoch
+    return int(time.time()) - start_time  # Seconds since epoch
 
 
 
@@ -207,10 +209,12 @@ async def ping_clients():
                 print(f"Device reachable, IP is {device['ip']} and location is {device['location']}")
                 if device.get("old_status") is not None:
                     device["status"] = device["old_status"]
-                    device["old_status"] = None
+                    device["old_status"] = "none"
             except Exception as e:
                 print(f"Device not reachable, IP is {device['ip']} and location is {device['location']}.")
-                device["status"] = "offline"
+                if device.get("old_status") == "none" or device.get("old_status") is None:
+                    device["old_status"] = device["status"]
+                    device["status"] = "offline"
                 
         await asyncio.sleep(120)
 
@@ -228,6 +232,42 @@ def stream():
             yield f"data: {available_devices}\n\n"
     return Response(event_stream(), mimetype="text/event-stream")
 
+
+
+
+log_queue = queue.Queue()
+
+class LoggedStdout:
+    def __init__(self, original):
+        self.original = original
+
+    def write(self, message):
+        self.original.write(message)
+        self.original.flush()
+        if message.strip():  # avoid empty lines
+            log_queue.put(message.strip())
+
+    def flush(self):
+        self.original.flush()
+
+# Redirect stdout
+sys.stdout = LoggedStdout(sys.stdout)
+sys.stderr = LoggedStdout(sys.stderr) 
+
+
+# Custom print function that adds to the queue
+@app.route('/logs')
+def stream_logs():
+    def event_stream():
+        yield "data: {}\n\n".format("Connected to logs")
+        while True:
+            msg = log_queue.get()
+            yield f"data: {msg}\n\n"
+    return Response(event_stream(), mimetype="text/event-stream")
+
+@app.route("/log")
+def get_logs():
+    return send_from_directory('.', 'log.html')
 
 if __name__ == "__main__":
     # Start the ping_clients coroutine in a separate thread

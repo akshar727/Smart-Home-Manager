@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.12.9/babel.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://site-assets.fontawesome.com/releases/v6.6.0/css/all.css"
+    />
+    <title>Smart Home Manager - Logs</title>
+  </head>
+  <body>
+    <div id="main">
+      <div id="app"></div>
+    </div>
+
+    <script type="text/babel">
+        const evtSource = new EventSource('/logs');
+        evtSource.onmessage = function (event) {
+          const logElement = document.createElement('div');
+          let unfiltered = event.data;
+          logElement.className = 'log';
+          let filtered = unfiltered.replace(/\[\d+m/g, '');
+          logElement.innerHTML = `<code>${filtered}</code>`;
+          document.getElementById('app').appendChild(logElement);
+        };
+        </script>

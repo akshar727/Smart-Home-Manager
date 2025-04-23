@@ -189,11 +189,15 @@
   opacity: 1;
 }
 
-.nav-item,
 .top .logo span {
   white-space: nowrap;
   overflow: hidden;
   transition: all 0.5s ease;
+}
+
+.nav-item {
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .sidebar ul li .tooltip {

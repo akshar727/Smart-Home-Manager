@@ -479,6 +479,14 @@
         const [serverInfo, setServerInfo] = React.useState({ time: 0 });
         const intervalRef = React.useRef(null);
 
+        function formatTime(seconds) {
+          const days = Math.floor(seconds / 86400);
+          const hours = Math.floor((seconds % 86400) / 3600);
+          const minutes = Math.floor((seconds % 3600) / 60);
+          const secs = seconds % 60;
+          return `${days}d ${hours}h ${minutes}m ${secs}s`;
+        }
+
         React.useEffect(() => {
           // Fetch the initial server uptime
           fetch("/api/server-info")
@@ -489,8 +497,8 @@
               intervalRef.current = setInterval(() => {
                 setServerInfo((prev) => ({
                   ...prev,
-                  time: prev.time + 1,
-                }));
+                  uptime: prev.uptime + 1,
+                }));  
               }, 1000);
             });
 
@@ -502,7 +510,7 @@
           <>
             <h1>Server Info</h1>
             <h3>Server Uptime</h3>
-            <p>Server has been up for {serverInfo.time} seconds</p>
+            <p>Server has been up for {formatTime(serverInfo.uptime)}</p>
             <h3>Server Log file</h3>
           </>
         );
