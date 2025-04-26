@@ -39,4 +39,4 @@ if setup:
     setup_manager = ClientSetupManager(fname)
     setup_manager.start_setup()
 else:
-    network_manager = BlindsClientNetworkManager(client_data["location"], calibrations["state"], server_ip, client_data["ssid"], client_data["pwd"], calibrations["closed_to_open"], calibrations["open_to_closed"])
+    network_manager = BlindsClientNetworkManager(client_data["location"], calibrations.get("state") if calibrations.get("state") is not None else "close", server_ip, client_data["ssid"], client_data["pwd"], calibrations["closed_to_open"], calibrations["open_to_closed"])

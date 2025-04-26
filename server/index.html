@@ -433,23 +433,23 @@
               <div className="devices">
                 {devices.blind.map((device) => (
                   <div key={device.location} className="device">
-                    <h3>{device.location}</h3>
-                    <div className="sp">
-                      <button
-                        className="op-btn"
-                        onClick={() => startCalibration(device.id, "open")}
-                        disabled={calibrating !== null}
-                      >
-                        Calibrate Opening
-                      </button>
-                      <button
-                        className="op-btn"
-                        onClick={() => startCalibration(device.id, "close")}
-                        disabled={calibrating !== null}
-                      >
-                        Calibrate Closing
-                      </button>
-                    </div>
+                  <h3>{device.location}</h3>
+                  <div className="sp">
+                    <button
+                    className="op-btn"
+                    onClick={() => startCalibration(device.id, "open")}
+                    disabled={calibrating !== null || device.status === "offline"}
+                    >
+                    Calibrate Opening
+                    </button>
+                    <button
+                    className="op-btn"
+                    onClick={() => startCalibration(device.id, "close")}
+                    disabled={calibrating !== null || device.status === "offline"}
+                    >
+                    Calibrate Closing
+                    </button>
+                  </div>
                   </div>
                 ))}
               </div>

@@ -78,6 +78,9 @@ def register():
         if device["ip"] == request.remote_addr:
             
             print(f"The existing device at {device['location']} and IP {device['ip']} has re-registered...")
+            if device["status"] == "offline":
+                device["status"] = device["old_status"]
+                device["old_status"] = "none"
             return jsonify({"success": True, "id": device["id"]})
 
     device = {
@@ -207,7 +210,7 @@ async def ping_clients():
             try:
                 r = requests.post(f"http://{device['ip']}/net/ping", timeout=8)
                 print(f"Device reachable, IP is {device['ip']} and location is {device['location']}")
-                if device.get("old_status") is not None:
+                if device.get("old_status") is not None and device.get("old_status") != "none":
                     device["status"] = device["old_status"]
                     device["old_status"] = "none"
             except Exception as e:
@@ -268,6 +271,8 @@ def stream_logs():
 @app.route("/log")
 def get_logs():
     return send_from_directory('.', 'log.html')
+
+    
 
 if __name__ == "__main__":
     # Start the ping_clients coroutine in a separate thread
