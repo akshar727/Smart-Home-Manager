@@ -98,7 +98,6 @@ def main():
     print("Enter the Wi-Fi Password: ", end='')
     pwd = input().strip()
 
-    # locate the ip of the server using the os command ping to ping the camerapi device and get hte ip address
     import os
     response = os.popen(f'ping -c 1 camerapi').read()
     server_ip = response.split()[2].strip('()').replace("):","") if 'camerapi' in response else 'not found'
