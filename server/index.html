@@ -247,7 +247,7 @@
           // setDevices((prevDevices) => {
           // const newDevices = { ...prevDevices };
           // newDevices.blind = newDevices.blind.map((device) => {
-          //   if (device.id === id) {
+          //   if (device.uuid === id) {
           //   return {
           //     ...device,
           //     status:
@@ -270,7 +270,7 @@
                 // setDevices((prevDevices) => {
                 //   const updatedDevices = { ...prevDevices };
                 //   updatedDevices.blind = updatedDevices.blind.map((device) => {
-                //   if (device.id === id) {
+                //   if (device.uuid === id) {
                 //     return {
                 //     ...device,
                 //     status: operation === "open" ? "open" : "close",
@@ -322,7 +322,7 @@
                             device.status === "transit_close" ||
                             device.status === "offline"
                           }
-                          onClick={() => fetchOperation(device.id, "open")}
+                          onClick={() => fetchOperation(device.uuid, "open")}
                         >
                           <i className="fa-solid fa-blinds-open"></i>
                           Open
@@ -335,7 +335,7 @@
                             device.status === "transit_close" ||
                             device.status === "offline"
                           }
-                          onClick={() => fetchOperation(device.id, "close")}
+                          onClick={() => fetchOperation(device.uuid, "close")}
                         >
                           <i className="fa-solid fa-blinds"></i>
                           Close
@@ -372,7 +372,7 @@
         const [startTime, setStartTime] = React.useState(null);
 
         function startCalibration(id, operation) {
-          const data = devices.blind.find((device) => device.id === id);
+          const data = devices.blind.find((device) => device.uuid === id);
           setCalibrating({ id, operation, ip: data.ip });
           fetch(`http://${data.ip}/api/calibrate/toggle/${operation}`)
             .then((res) => {
@@ -437,14 +437,14 @@
                   <div className="sp">
                     <button
                     className="op-btn"
-                    onClick={() => startCalibration(device.id, "open")}
+                    onClick={() => startCalibration(device.uuid, "open")}
                     disabled={calibrating !== null || device.status === "offline"}
                     >
                     Calibrate Opening
                     </button>
                     <button
                     className="op-btn"
-                    onClick={() => startCalibration(device.id, "close")}
+                    onClick={() => startCalibration(device.uuid, "close")}
                     disabled={calibrating !== null || device.status === "offline"}
                     >
                     Calibrate Closing

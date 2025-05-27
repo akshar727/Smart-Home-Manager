@@ -1,7 +1,6 @@
 import json
 from client_network_manager import BlindsClientNetworkManager
 import uos
-from client_setup import ClientSetupManager
 
 if not "calibration.json" in  uos.listdir():
     calibrations = {
@@ -31,12 +30,9 @@ if isfile(fname):
     setup = False
     with open(fname) as f:
         client_data = json.load(f)
-
+    self_id = client_data.get("id", None)
     server_ip = client_data["server_ip"]
 
 print("Setup: ",setup)
-if setup:
-    setup_manager = ClientSetupManager(fname)
-    setup_manager.start_setup()
-else:
-    network_manager = BlindsClientNetworkManager(client_data["location"], calibrations.get("state") if calibrations.get("state") is not None else "close", server_ip, client_data["ssid"], client_data["pwd"], calibrations["closed_to_open"], calibrations["open_to_closed"])
+if not setup:
+    network_manager = BlindsClientNetworkManager(client_data["location"], calibrations.get("state") if calibrations.get("state") is not None else "close", server_ip, client_data["ssid"], client_data["pwd"], calibrations["closed_to_open"], calibrations["open_to_closed"],self_id)

@@ -11,43 +11,17 @@ import requests
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes # type: ignore
 from cryptography.hazmat.backends import default_backend #type: ignore
 import queue
+from uuid import uuid4
 
 # Flask app setup
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 
-# AES encryption setup
-MODE_CBC = modes.CBC
-BLOCK_SIZE = 16
-
-# Key and IV for AES encryption
-key = b"q\x06\xfd\xc1\x01'\x8a<\x1bV\xf0\xf4\xda\x0e\xf05q\x17Ws\x16\x18\xbfqL\x10\x9c\xe0\xed\x11F\xa1"
-iv = b'gf4]\xd8\xf27Tg\xa7\xf5\xfdb,\xf6\xc3'
-
-
-# def aes_encrypt(plaintext, _id):
-#     pad = BLOCK_SIZE - len(plaintext) % BLOCK_SIZE
-#     plaintext = plaintext + " " * pad
-
-#     cipher = Cipher(algorithms.AES(key), MODE_CBC(iv), backend=default_backend())
-#     encryptor = cipher.encryptor()
-#     ct_bytes = encryptor.update(plaintext.encode()) + encryptor.finalize()
-
-#     # Join the ID and the ciphertext
-#     ct_bytes = _id.encode() + ct_bytes
-#     return ct_bytes
-
-
-# def split_into_chunk_20(inp):
-#     return [inp[i:i + 20] for i in range(0, len(inp), 20)]
-
-
 print("\n")
 print("Starting up server")
 
 available_devices = []
-next_id = 0
 
 # Load devices from file
 devices_name = "devices.json"
@@ -55,8 +29,6 @@ if os.path.isfile(devices_name): #type: ignore
     with open(devices_name) as f:
         data = json.load(f)
         available_devices = data["devices"]
-        next_id = data["next_id"]
-
 
 @app.route('/')
 def index():
@@ -70,7 +42,6 @@ def index_css():
 
 @app.route("/api/net/id", methods=["POST"])
 def register():
-    global next_id
     data = request.json
 
     # Check if the device is already registered
@@ -81,32 +52,38 @@ def register():
             if device["status"] == "offline":
                 device["status"] = device["old_status"]
                 device["old_status"] = "none"
-            return jsonify({"success": True, "id": device["id"]})
+            return jsonify({"success": True, "uuid": device["uuid"]})
+        elif device["uuid"] == data["uuid"]:
+            print(f"The existing device with ID {device['uuid']} has re-registered under a new IP...")
+            if device["status"] == "offline":
+                device["status"] = device["old_status"]
+                device["old_status"] = "none"
+            device["ip"] = request.remote_addr
+            return jsonify({"success": True, "uuid": device["uuid"]})
 
     device = {
         "ip": request.remote_addr,
         "location": data["location"],
         "type": data["type"],
-        "id": next_id,
+        "uuid": uuid4().hex,
         "status": data["state"]
     }
     available_devices.append(device)
-    next_id += 1
 
     with open(devices_name, "w") as f:
-        json.dump({"next_id": next_id, "devices": available_devices}, f)
+        json.dump({"devices": available_devices}, f)
 
-    print(f"Found a NEW device at {data['location']} with IP {device['ip']}. Assigning ID of {device['id']}")
+    print(f"Found a NEW device at {data['location']} with IP {device['ip']}. Assigning ID of {device['uuid']}")
     print(available_devices)
     
-    return jsonify({"success": True, "id": device["id"]})
+    return jsonify({"success": True, "uuid": device["uuid"]})
 
 
-@app.route("/api/operation/<int:id>/<string:status>", methods=["GET"])
+@app.route("/api/operation/<string:id>/<string:status>", methods=["GET"])
 def run_pico(id, status):
     target_device = None
     for device in available_devices:
-        if device["id"] == id:
+        if device["uuid"] == id:
             target_device = device
             break
 
@@ -116,7 +93,7 @@ def run_pico(id, status):
     if target_device["status"] == "offline":
         return jsonify({"success": False, "err": "Device is offline"})
 
-    req_data = {"status": status, "id": target_device["id"]}
+    req_data = {"status": status, "id": target_device["uuid"]}
     target_device["status"] = "transit_open" if status == "open" else "transit_close"
 
     try:
@@ -132,10 +109,10 @@ def run_pico(id, status):
 @app.route("/api/net/finish", methods=["POST"])
 def finish_status_change():
     data = request.json
-    _id = data["id"]
+    _id = data["uuid"]
     target_device = None
     for device in available_devices:
-        if device["id"] == _id:
+        if device["uuid"] == _id:
             target_device = device
             break
 
@@ -155,32 +132,6 @@ def server_info():
 @app.route("/api/network")
 def check_for_devices():
     return jsonify([True])
-
-
-# @app.route("/api/credential-apply", methods=["POST"])
-# async def apply_credentials():
-#     data = request.json
-#     loc = data["location"]
-
-#     async def send(data, _id, encrypt=True):
-#         pdata = aes_encrypt(data, _id) if encrypt else _id.encode() + data
-#         chunks = split_into_chunk_20(pdata)
-#         for chunk in chunks:
-#             # Simulate BLE characteristic write
-#             print(f"Sending chunk: {chunk}")
-#             await asyncio.sleep(0.05)
-
-#     await send("SSID", "w;")
-#     await asyncio.sleep(0.3)
-#     await send("PASSWORD", "p;")
-#     await asyncio.sleep(0.3)
-#     await send(loc.encode(), "l;", False)
-#     await asyncio.sleep(0.3)
-#     await send("IP_ADDRESS".encode(), "i;", False)
-
-#     return jsonify({"success": True})
-
-
 
 
 @app.errorhandler(404)

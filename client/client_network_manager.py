@@ -16,11 +16,12 @@ import machine
 
 
 class ClientNetworkManager:
-    def __init__(self, _type, location, state, server_ip, wlan_ssid, wlan_pwd) -> None:
+    def __init__(self, _type, location, state, server_ip, wlan_ssid, wlan_pwd,self_id=None) -> None:
         self.type = _type
         self.location = location
         self.state = state
         self.server_ip = server_ip
+        self.id = self_id
         self.ssid = wlan_ssid
         self.pwd = wlan_pwd
         led = machine.Pin("LED", machine.Pin.OUT)
@@ -82,12 +83,23 @@ class ClientNetworkManager:
         k = {
             "type": self.type,
             "location": self.location,
-            "state": self.state,
+            "state": self.state
         }
+        if self.id is not None:
+            k["uuid"] = self.id
         try:
             r = requests.post(f"http://{self.server_ip}/api/net/id", json=k,timeout=8)
             self.log(r.json())
-            self.id = r.json().get('id')
+            self.id = r.json().get('uuid') if self.id is None else self.id
+            with open("client_data.json", "w") as f:
+                client_data = {
+                    "id": self.id,
+                    "server_ip": self.server_ip,
+                    "ssid": self.ssid,
+                    "pwd": self.pwd,
+                    "location": self.location
+                }
+                json.dump(client_data, f)
             self.log("ID sent")
         except Exception as e:
             self.log("Failed to send ID:" + str(e))
@@ -130,22 +142,20 @@ class ClientNetworkManager:
 
 
 class BlindsClientNetworkManager(ClientNetworkManager):
-    def __init__(self,location, state, server_ip, wlan_ssid, wlan_pwd, open_calibration: int, close_calibration: int) -> None:
-        super().__init__('blind',location, state, server_ip, wlan_ssid, wlan_pwd)
+    def __init__(self,location, state, server_ip, wlan_ssid, wlan_pwd, open_calibration: int, close_calibration: int,self_id=None) -> None:
+        super().__init__('blind',location, state, server_ip, wlan_ssid, wlan_pwd,self_id=None)
         self.calibrations: dict[str, int] = {
             "closed_to_open": open_calibration,
             "open_to_closed": close_calibration
         }
-        self.forward_pin = machine.Pin(27,machine.Pin.OUT)
-        self.backward_pin = machine.Pin(28, machine.Pin.OUT)
+        self.forward_pin = machine.Pin(28,machine.Pin.OUT)
+        self.backward_pin = machine.Pin(26, machine.Pin.OUT)
         self.register_methods()
 
         async def main():
             server = asyncio.create_task(self.app.start_server(host=self.client_ip, port=80))
-            # ping = asyncio.create_task(self.ping_server())
 
             await server
-            # await ping
         asyncio.run(main())
     
     def register_methods(self):
@@ -198,9 +208,7 @@ class BlindsClientNetworkManager(ClientNetworkManager):
         async def status_change(request):
             data = json.loads(request.body)
             status = data["status"]
-            my_id = data["id"]
             asyncio.create_task(change_state(status))
-            #{"new_status": "open" | "close"}
             return {"success": True}
         
         self.app.route("/status",methods=["POST"])(status_change)
