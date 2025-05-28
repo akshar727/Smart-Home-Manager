@@ -52,6 +52,9 @@ def register():
             if device["status"] == "offline":
                 device["status"] = device["old_status"]
                 device["old_status"] = "none"
+            if device["status"] == "transit_open" or device["status"] == "transit_close":
+                # somehow a bug, but just set it to its finished state
+                device["status"] = "open" if data["status"] == "transit_open" else "close"
             return jsonify({"success": True, "uuid": device["uuid"]})
         elif device["uuid"] == data["uuid"]:
             print(f"The existing device with ID {device['uuid']} has re-registered under a new IP...")
@@ -109,6 +112,7 @@ def run_pico(id, status):
 @app.route("/api/net/finish", methods=["POST"])
 def finish_status_change():
     data = request.json
+    print(data)
     _id = data["uuid"]
     target_device = None
     for device in available_devices:
@@ -119,6 +123,7 @@ def finish_status_change():
     if target_device is None:
         return jsonify({"success": False, "err": "Device not found or not registered"})
 
+    print(f"Finishing status change for device {target_device['uuid']} at {target_device['location']} with IP {target_device['ip']}")
     target_device["status"] = data["final_status"]
     
     return jsonify({"success": True})
@@ -159,7 +164,7 @@ async def ping_clients():
     while True:
         for device in available_devices:
             try:
-                r = requests.post(f"http://{device['ip']}/net/ping", timeout=8)
+                r = requests.post(f"http://{device['ip']}/net/ping", json={"uuid": device['uuid']}, timeout=8)
                 print(f"Device reachable, IP is {device['ip']} and location is {device['location']}")
                 if device.get("old_status") is not None and device.get("old_status") != "none":
                     device["status"] = device["old_status"]

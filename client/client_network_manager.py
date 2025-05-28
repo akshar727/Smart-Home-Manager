@@ -50,6 +50,8 @@ class ClientNetworkManager:
         #     return "Log cleared"
         
         async def ping_recieve(request):
+            data = json.loads(request.body)
+            self.id = data["uuid"] if self.id is None else self.id
             return {"success": True}
 
         # self.app.route('/log.txt')(log)
@@ -104,40 +106,6 @@ class ClientNetworkManager:
         except Exception as e:
             self.log("Failed to send ID:" + str(e))
 
-    async def ping_server(self):
-        server_ping_has_failed = False
-        while True:
-            try:
-                r = requests.post(f"http://{self.server_ip}/net/ping",timeout=8)
-                self.log("Pinged server successfully at ip of", self.client_ip)
-                if server_ping_has_failed:
-                    self.send_identification()
-                    self.log("Trying to send to reregister again")
-                    server_ping_has_failed = False
-            except Exception as e:
-                self.log("Failed to ping server trying twice more:" + str(e))
-                server_ping_has_failed = True
-                try:
-                    r = requests.post(f"http://{self.server_ip}/net/ping")
-                    self.log("Pinged server successfully at ip of", self.client_ip)
-                    server_ping_has_failed = False
-                    await asyncio.sleep(20)
-                    continue
-                except Exception as e:
-                    self.log("Failed to ping server again:" + str(e))
-                    server_ping_has_failed = True
-
-                try:
-                    r = requests.post(f"http://{self.server_ip}/net/ping")
-                    self.log("Pinged server successfully at ip of", self.client_ip)
-                    server_ping_has_failed = False
-                    await asyncio.sleep(20)
-                    continue
-                except Exception as e:
-                    self.log("Failed to ping server again:" + str(e))
-                    server_ping_has_failed = True
-            await asyncio.sleep(20)
-
     
 
 
@@ -175,7 +143,7 @@ class BlindsClientNetworkManager(ClientNetworkManager):
                 await asyncio.sleep(self.calibrations["open_to_closed"])
                 self.backward_pin.off()
                 self.state = "close"
-            r = requests.post(f"http://{self.server_ip}/api/net/finish", json={"final_status": status, "id": self.id})
+            r = requests.post(f"http://{self.server_ip}/api/net/finish", json={"final_status": status, "uuid": self.id})
             response = r.json()
             self.log(response)
             self.log("Finished moving motors")
