@@ -34,10 +34,11 @@ if os.path.isfile(devices_name): #type: ignore
 def index():
     return send_from_directory('.', 'index.html')
 
+@app.route('/_next/<path:filename>')
+def next_static(filename):
+    return send_from_directory(os.path.join('.', '_next'), filename)
 
-@app.route('/index.css')
-def index_css():
-    return send_from_directory('.', 'index.css')
+
 
 
 @app.route("/api/net/id", methods=["POST"])
@@ -107,6 +108,30 @@ def run_pico(id, status):
     except Exception as e:
         print(f"Error sending request to device: {e}")
         return jsonify({"success": False, "err": "Failed to communicate with device"})
+    
+@app.route("/api/remove/<string:id>", methods=["DELETE"])
+def remove_device(id):
+    global available_devices
+    target_device = None
+    for device in available_devices:
+        if device["uuid"] == id:
+            target_device = device
+            break
+
+    if target_device is None:
+        return jsonify({"success": False, "err": "Device not found or not registered"})
+
+    print(f"Removing device {target_device['uuid']} at {target_device['location']} with IP {target_device['ip']}")
+    r = requests.post(f"http://{target_device['ip']}/remove", json={"uuid": target_device["uuid"]})
+    if r.status_code != 200:
+        print(f"Failed to notify device {target_device['uuid']} at {target_device['ip']} for removal")
+        return jsonify({"success": False, "err": "Failed to notify device for removal"}), 500
+    available_devices.remove(target_device)
+
+    with open(devices_name, "w") as f:
+        json.dump({"devices": available_devices}, f)
+
+    return jsonify({"success": True})
 
 
 @app.route("/api/net/finish", methods=["POST"])

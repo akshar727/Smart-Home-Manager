@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.12.9/babel.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://site-assets.fontawesome.com/releases/v6.6.0/css/all.css"
+    />
+    <link rel="stylesheet" href="index.css" />
+    <title>Smart Home Manager - Dashboard</title>
+  </head>
+  <body>
+    <div class="sidebar"></div>
+    <div id="main">
+      <div id="app"></div>
+    </div>
+
+    <script type="text/babel">
+      const evtSource = new EventSource("/devices");
+      const _devices = [];
+      // fetch("/api/updates")
+      //   .then((res) => res.json())
+      //   .then((data) => {
+      //     _devices = organizeData(data);
+      //   })
+      //   .catch((error) => {
+      //     // mostly dev purposes but also incase the fetch fails
+      //     var organized = organizeData(_devices);
+      //     setDevices(() => {
+      //       organized.blind = organized.blind.map((device) => ({
+      //         ...device,
+      //         status: Math.random() > 0.5 ? "open" : "closed",
+      //       }));
+      //       return organized;
+      //     });
+      //   });
+
+      const NetworkingContext = React.createContext();
+
+      function NetworkingAgent(props) {
+        // use the sse written above to get the updates and then use it in a way where i can wrap it around all the other components and they can access the devices
+        const [devices, setDevices] = React.useState(_devices);
+        React.useEffect(() => {
+          evtSource.onmessage = (event) => {
+            const updatedData = JSON.parse(event.data.replace(/'/g, '"'));
+            setDevices((prevDevices) => {
+              const organized = organizeData(updatedData);
+              return {
+                ...prevDevices,
+                ...organized,
+              };
+            });
+          };
+
+          return () => {
+          };
+        }, []);
+
+        return (
+          <NetworkingContext.Provider value={{ devices, setDevices }}>
+            {props.children}
+          </NetworkingContext.Provider>
+        );
+      }
+
+      function organizeData(data) {
+        if (Object.keys(data).length === 0) {
+          return {};
+        }
+        // create a dictionary, where the key is the device type and the value is a list of dictionaries of the devices
+        const organizedData = data.reduce((acc, device) => {
+          if (!acc[device.type]) {
+            acc[device.type] = [];
+          }
+          acc[device.type].push(device);
+          return acc;
+        }, {});
+        return organizedData;
+      }
+
+      function Sidebar() {
+        const navList = React.useRef(null);
+        function changeScreen(page) {
+          console.log(currentPage)
+          currentPage = page;
+          for (let i = 0; i < navList.current.children.length; i++) {
+              navList.current.children[i].classList.remove("active");
+          }
+          // get the html element of the navlist. Find the nth (li) child, and add the active class to that child
+          document.getElementById(`btn${page}`).classList.add("active");
+          // remove the active class from the other children
+          rerender();
+        }
+        function toggleActive() {
+          document.querySelector(".sidebar").classList.toggle("active");
+        }
+
+        return (
+          <>
+            <div className="top">
+              <div className="logo">
+                <span>Smart Home Manager</span>
+              </div>
+              <i
+                className="fa-regular fa-bars"
+                id="btn"
+                onClick={toggleActive}
+              ></i>
+            </div>
+            <ul id="navlist" ref={navList}>
+              <li id="btn0" className="active">
+                <a href="#" onClick={() => changeScreen(0)}>
+                  <i className="fa-regular fa-house"></i>
+                  <span className="nav-item">Dashboard</span>
+                  <span className="tooltip">Dashboard</span>
+                </a>
+              </li>
+              {/*
+              <li>
+                <a href="#" onClick={() => changeScreen(1)}>
+                  <i className="fa-regular fa-gear"></i>
+                  <span className="nav-item">Settings</span>
+                  <span className="tooltip">Settings</span>
+                </a>
+              </li>
+            */}
+              <li id="btn2">
+                <a href="#" onClick={() => changeScreen(2)}>
+                  <i className="fa-regular fa-info"></i>
+                  <span className="nav-item">Server Info</span>
+                  <span className="tooltip">Server Info</span>
+                </a>
+              </li>
+
+              {/* <li id="btn3">
+                <a href="#" onClick={() => changeScreen(3)}>
+                  <i className="fa-regular fa-bluetooth"></i>
+                  <span className="nav-item">Add A Device</span>
+                  <span className="tooltip">Add A Device</span>
+                </a>
+              </li> */}
+              <li id="btn4">
+                <a href="#" onClick={() => changeScreen(4)}>
+                  <i className="fa-regular fa-gear"></i>
+                  <span className="nav-item">Calibrate A Device</span>
+                  <span className="tooltip">Calibrate A Device</span>
+                </a>
+              </li>
+              {/*
+              <li>
+                <a href="#">
+                  <i className="fa-regular fa-gear"></i>
+                  <span className="nav-item">Dashboard</span>
+                  <span className="tooltip">Dashboard</span>
+                </a>
+              </li>
+              */}
+            </ul>
+          </>
+        );
+      }
+
+      function FindNewDevice() {
+        const [deviceFound, setDeviceFound] = React.useState(false);
+
+        function sendCredentials() {
+          var loc = document.querySelector("input[name=location]").value;
+          loc = loc.trim();
+          if (loc === "") {
+            alert("Please enter a location.");
+            return;
+          }
+          fetch("/api/credential-apply", {
+            method: "POST",
+            body: JSON.stringify({
+              location: loc,
+            }),
+          }).then((res) => {
+            if (res.status === 200) {
+              alert("Device added successfully! Restart the device to see it.");
+              changeScreen(0);
+            } else {
+              alert(
+                "An error occurred while adding the device. Please ensure the device is on."
+              );
+            }
+          });
+        }
+
+        React.useEffect(() => {
+          const interval = setInterval(() => {
+            fetch("/api/network")
+              .then((res) => res.json())
+              .then((data) => {
+                if (data[0] === true) {
+                  setDeviceFound(true);
+                } else {
+                  setDeviceFound(false);
+                }
+              });
+          }, 2500);
+          return () => clearInterval(interval);
+        }, []);
+        return (
+          <>
+            <h1>Find a Device</h1>
+            {deviceFound && (
+              <>
+                <h2>Device Found!</h2>
+                <label htmlFor="location">Device Location</label>
+                <br />
+                <input
+                  type="text"
+                  className="inp"
+                  name="location"
+                  placeholder="Office, Kitchen, Dining Room 1"
+                ></input>
+                <br />
+                <button className="op-btn" onClick={() => sendCredentials()}>
+                  Finish Setup
+                </button>
+              </>
+            )}
+            {deviceFound === false && (
+              <>
+                <p>Scanning for devices...</p>
+                <p>
+                  {" "}
+                  If you have a device to add, please turn it on now. The device
+                  should show up once both devices' leds turn{" "}
+                  <span style={{ color: "green", padding: "0" }}>green</span>.
+                </p>
+              </>
+            )}
+          </>
+        );
+      }
+      function DeviceWidgets() {
+        const { devices } = React.useContext(NetworkingContext);
+        //Implementing the setInterval method
+        //Clearing the interval
+
+        function fetchOperation(id, operation) {
+          // setDevices((prevDevices) => {
+          // const newDevices = { ...prevDevices };
+          // newDevices.blind = newDevices.blind.map((device) => {
+          //   if (device.uuid === id) {
+          //   return {
+          //     ...device,
+          //     status:
+          //     operation === "open" ? "transit_open" : "transit_close",
+          //   };
+          //   }
+          //   return device;
+          // });
+          // return newDevices;
+          // });
+
+          fetch(`/api/operation/${id}/${operation}`)
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.success === true) {
+                console.log(
+                  `Operation ${operation} on device ${id} was successful.`
+                );
+
+                // setDevices((prevDevices) => {
+                //   const updatedDevices = { ...prevDevices };
+                //   updatedDevices.blind = updatedDevices.blind.map((device) => {
+                //   if (device.uuid === id) {
+                //     return {
+                //     ...device,
+                //     status: operation === "open" ? "open" : "close",
+                //     };
+                //   }
+                //   return device;
+                //   });
+                //   return updatedDevices;
+                // });
+              } else {
+                console.log(
+                  "An error occurred while performing the operation. Please try again."
+                );
+              }
+            });
+        }
+        console.log("Rendering these devices", devices);
+        return (
+          <React.Fragment>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <h1>Your Devices</h1>
+              <button
+                className="op-btn"
+                onClick={() => {
+                  alert("hi");
+                }}
+                style={{ marginRight: "10px" }}
+              >Remove a Device</button>
+            </div>
+            {Object.keys(devices).length === 0 && (
+              <p>No devices yet. Check the instructions on how to add one!</p>
+            )}
+            {Object.keys(devices).length > 0 && (
+              <React.Fragment>
+                <h3 className="category-title">Blinds</h3>
+                <div className="devices">
+                  {devices.blind.map((device) => (
+                    <div key={device.location} className="device">
+                      <h3>{device.location}</h3>
+                      <p>
+                        Device status:{" "}
+                        {device.status === "offline"
+                          ? "Offline"
+                          : device.status === "open"
+                          ? "Opened"
+                          : device.status === "close"
+                          ? "Closed"
+                          : device.status === "transit_open"
+                          ? "Opening..."
+                          : "Closing..."}
+                      </p>
+                      <div className="sp">
+                        <button
+                          className="op-btn"
+                          disabled={
+                            device.status === "open" ||
+                            device.status === "transit_open" ||
+                            device.status === "transit_close" ||
+                            device.status === "offline"
+                          }
+                          onClick={() => fetchOperation(device.uuid, "open")}
+                        >
+                          <i className="fa-solid fa-blinds-open"></i>
+                          Open
+                        </button>
+                        <button
+                          className="op-btn"
+                          disabled={
+                            device.status === "close" ||
+                            device.status === "transit_open" ||
+                            device.status === "transit_close" ||
+                            device.status === "offline"
+                          }
+                          onClick={() => fetchOperation(device.uuid, "close")}
+                        >
+                          <i className="fa-solid fa-blinds"></i>
+                          Close
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <h3 className="category-title">Cameras</h3>
+                <div className="devices">
+                  {devices.camera !== undefined && (
+                    <>
+                      {devices.camera.map((device) => (
+                        <div key={device.location} className="device">
+                          <h3>{device.location}</h3>
+                          <button className="op-btn">
+                            <i className="fa-solid fa-video"></i>
+                            View Stream
+                          </button>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
+              </React.Fragment>
+            )}
+          </React.Fragment>
+        );
+      }
+
+      function CalibrateDevice() {
+        const { devices } = React.useContext(NetworkingContext);
+        const [calibrating, setCalibrating] = React.useState(null);
+        const [startTime, setStartTime] = React.useState(null);
+
+        function startCalibration(id, operation) {
+          const data = devices.blind.find((device) => device.uuid === id);
+          setCalibrating({ id, operation, ip: data.ip });
+          fetch(`http://${data.ip}/api/calibrate/toggle/${operation}`)
+            .then((res) => {
+              if (res.ok) {
+                if (!startTime) {
+                  setStartTime(Date.now());
+                }
+              } else {
+                alert("Failed to toggle motor. Please try again.");
+              }
+            })
+            .catch(() => {
+              alert(
+                "An error occurred while toggling the motor. Please try again."
+              );
+            });
+        }
+
+        function stopCalibration() {
+          if (startTime) {
+            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+          }
+          if (calibrating) {
+            console.log(`Start time: ${startTime}`);
+            console.log(`End time: ${Date.now()}`);
+            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+            fetch(`http://${calibrating.ip}/api/calibrate/set`, {
+              method: "POST",
+              body: JSON.stringify({
+                duration: elapsedTime,
+                operation: calibrating.operation,
+              }),
+              headers: { "Content-Type": "application/json" },
+            })
+              .then((res) => {
+                if (res.ok) {
+                  alert(
+                    `Calibration finished. Duration: ${elapsedTime} seconds.`
+                  );
+                } else {
+                  alert("Failed to finish calibration. Please try again.");
+                }
+              })
+              .finally(() => {
+                setCalibrating(null);
+                setStartTime(null);
+              });
+          }
+        }
+
+        return (
+          <>
+            <h1>Calibrate Devices</h1>
+            {Object.keys(devices).length === 0 && (
+              <p>No devices available for calibration.</p>
+            )}
+            {Object.keys(devices).length > 0 && (
+              <div className="devices">
+                {devices.blind.map((device) => (
+                  <div key={device.location} className="device">
+                  <h3>{device.location}</h3>
+                  <div className="sp">
+                    <button
+                    className="op-btn"
+                    onClick={() => startCalibration(device.uuid, "open")}
+                    disabled={calibrating !== null || device.status === "offline"}
+                    >
+                    Calibrate Opening
+                    </button>
+                    <button
+                    className="op-btn"
+                    onClick={() => startCalibration(device.uuid, "close")}
+                    disabled={calibrating !== null || device.status === "offline"}
+                    >
+                    Calibrate Closing
+                    </button>
+                  </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {calibrating && (
+              <div>
+                <h2>
+                  Calibrating
+                  {calibrating.operation === "open" ? " Opening" : " Closing"}
+                  ...
+                </h2>
+                <p>
+                  Press the stop button when you are satisfied with the status
+                  of your blinds for{" "}
+                  {calibrating.operation === "open" ? " Opening" : " Closing"}.
+                </p>
+                <button className="op-btn" onClick={stopCalibration}>
+                  Stop
+                </button>
+              </div>
+            )}
+          </>
+        );
+      }
+
+      function ServerInfo() {
+        const [serverInfo, setServerInfo] = React.useState({ time: 0 });
+        const intervalRef = React.useRef(null);
+
+        function formatTime(seconds) {
+          const days = Math.floor(seconds / 86400);
+          const hours = Math.floor((seconds % 86400) / 3600);
+          const minutes = Math.floor((seconds % 3600) / 60);
+          const secs = seconds % 60;
+          return `${days}d ${hours}h ${minutes}m ${secs}s`;
+        }
+
+        React.useEffect(() => {
+          // Fetch the initial server uptime
+          fetch("/api/server-info")
+            .then((res) => res.json())
+            .then((data) => {
+              setServerInfo(data);
+              // Start the interval to increment uptime
+              intervalRef.current = setInterval(() => {
+                setServerInfo((prev) => ({
+                  ...prev,
+                  uptime: prev.uptime + 1,
+                }));  
+              }, 1000);
+            });
+
+          // Cleanup interval when the component is unmounted
+          return () => clearInterval(intervalRef.current);
+        }, []);
+
+        return (
+          <>
+            <h1>Server Info</h1>
+            <h3>Server Uptime</h3>
+            <p>Server has been up for {formatTime(serverInfo.uptime)}</p>
+            <h3>Server Log file</h3>
+          </>
+        );
+      }
+      function SettingsScreen() {
+        return <h1>Settings</h1>;
+      }
+
+      var currentPage = 0;
+
+      function rerender() {
+        // delete any elements in the app div
+        ReactDOM.unmountComponentAtNode(document.getElementById("app"));
+        switch (currentPage) {
+          case 0:
+            ReactDOM.render(
+              <NetworkingAgent>
+                <DeviceWidgets />
+              </NetworkingAgent>,
+              document.getElementById("app")
+            );
+            break;
+          case 1:
+            ReactDOM.render(
+              <NetworkingAgent>
+                <SettingsScreen />
+              </NetworkingAgent>,
+              document.getElementById("app")
+            );
+            break;
+          case 2:
+            ReactDOM.render(
+              <NetworkingAgent>
+                <ServerInfo />
+              </NetworkingAgent>,
+              document.getElementById("app")
+            );
+            break;
+          case 3:
+            ReactDOM.render(
+              <NetworkingAgent>
+                <FindNewDevice />
+              </NetworkingAgent>,
+              document.getElementById("app")
+            );
+            break;
+          case 4:
+            ReactDOM.render(
+              <NetworkingAgent>
+                <CalibrateDevice />
+              </NetworkingAgent>,
+              document.getElementById("app")
+            );
+            break;
+          default:
+            ReactDOM.render(
+              <NetworkingAgent>
+                <DeviceWidgets />
+              </NetworkingAgent>,
+              document.getElementById("app")
+            );
+        }
+
+        ReactDOM.render(<Sidebar />, document.querySelector(".sidebar"));
+      }
+      rerender();
+    </script>
+  </body>
+</html>
