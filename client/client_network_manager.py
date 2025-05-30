@@ -59,7 +59,7 @@ class ClientNetworkManager:
 
         # self.app.route("/clearlog")(clear_log)
 
-        CORS(self.app, allowed_origins=[f'http://{server_ip}'], allow_credentials=True)
+        CORS(self.app, allowed_origins=[f'http://{server_ip}',f'https://{server_ip}'], allow_credentials=True)
         self.log("Created Microdot Application")
 
     def register_methods(self):
@@ -90,7 +90,7 @@ class ClientNetworkManager:
         if self.id is not None:
             k["uuid"] = self.id
         try:
-            r = requests.post(f"http://{self.server_ip}/api/net/id", json=k,timeout=8)
+            r = requests.post(f"https://{self.server_ip}/api/net/id", json=k,timeout=8)
             self.log(r.json())
             self.id = r.json().get('uuid') if self.id is None else self.id
             with open("client_data.json", "w") as f:
@@ -143,11 +143,12 @@ class BlindsClientNetworkManager(ClientNetworkManager):
                 await asyncio.sleep(self.calibrations["open_to_closed"])
                 self.backward_pin.off()
                 self.state = "close"
-            r = requests.post(f"http://{self.server_ip}/api/net/finish", json={"final_status": status, "uuid": self.id})
+            r = requests.post(f"https://{self.server_ip}/api/net/finish", json={"final_status": status, "uuid": self.id})
             print(r.text)
             response = r.json()
             self.log(response)
             self.log("Finished moving motors")
+            self.locked = False
         async def set_calibration(request):
             data = json.loads(request.body)
             operation = data["operation"]
@@ -173,10 +174,14 @@ class BlindsClientNetworkManager(ClientNetworkManager):
                 self.backward_pin.on()
             
             return {"success": True}
-
+        self.locked = False
         async def status_change(request):
             data = json.loads(request.body)
             status = data["status"]
+            if self.locked:
+                self.log("Already changing state, ignoring request")
+                return {"success": False, "err": "Already changing state"}
+            self.locked = True
             asyncio.create_task(change_state(status))
             return {"success": True}
         
