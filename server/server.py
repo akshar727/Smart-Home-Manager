@@ -78,8 +78,7 @@ def register():
         json.dump({"devices": available_devices}, f)
 
     print(f"Found a NEW device at {data['location']} with IP {device['ip']}. Assigning ID of {device['uuid']}")
-    print(available_devices)
-    
+    print(available_devices) 
     return jsonify({"success": True, "uuid": device["uuid"]})
 
 
@@ -122,12 +121,20 @@ def remove_device(id):
         return jsonify({"success": False, "err": "Device not found or not registered"})
 
     print(f"Removing device {target_device['uuid']} at {target_device['location']} with IP {target_device['ip']}")
-    r = requests.post(f"http://{target_device['ip']}/remove", json={"uuid": target_device["uuid"]})
-    if r.status_code != 200:
-        print(f"Failed to notify device {target_device['uuid']} at {target_device['ip']} for removal")
-        return jsonify({"success": False, "err": "Failed to notify device for removal"}), 500
-    available_devices.remove(target_device)
+    def request_task(url, json, headers):
+        requests.post(url, json=data, headers=headers)
 
+
+    def fire_and_forget(url, json, headers):
+        threading.Thread(target=request_task, args=(url, json, headers)).start()
+    fire_and_forget(
+        url=f"http://{target_device['ip']}/remove",
+        json={"uuid": target_device["uuid"]},
+        headers={}
+    )
+    available_devices.remove(target_device)
+    print(target_device)
+    print(available_devices)
     with open(devices_name, "w") as f:
         json.dump({"devices": available_devices}, f)
 
@@ -150,6 +157,9 @@ def finish_status_change():
 
     print(f"Finishing status change for device {target_device['uuid']} at {target_device['location']} with IP {target_device['ip']}")
     target_device["status"] = data["final_status"]
+    target_device["last_state_change"] = int(time.time())
+    with open(devices_name, "w") as f:
+        json.dump({"devices": available_devices}, f)
     
     return jsonify({"success": True})
 
@@ -263,4 +273,5 @@ if __name__ == "__main__":
     threading.Thread(target=start_ping_clients, daemon=True).start()
 
     # Run the Flask server
+    # app.debug = True
     app.run(host="0.0.0.0", port=80)

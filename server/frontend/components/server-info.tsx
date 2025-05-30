@@ -14,7 +14,7 @@ export default function ServerInfo() {
 
   React.useEffect(() => {
     // Fetch the initial server uptime
-    fetch("http://192.168.86.38/api/server-info")
+    fetch("/api/server-info")
       .then((res) => res.json())
       .then((data) => {
         setServerInfo(data);
@@ -32,11 +32,10 @@ export default function ServerInfo() {
   }, []);
 
   return (
-    <>
-      <h1>Server Info</h1>
-      <h3>Server Uptime</h3>
+    <div className="p-4">
+      <h1 className="font-medium text-3xl">Server Uptime</h1>
       <p>Server has been up for {formatTime(serverInfo.uptime)}</p>
-    </>
+    </div>
   );
 }
   

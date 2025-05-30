@@ -144,6 +144,7 @@ class BlindsClientNetworkManager(ClientNetworkManager):
                 self.backward_pin.off()
                 self.state = "close"
             r = requests.post(f"http://{self.server_ip}/api/net/finish", json={"final_status": status, "uuid": self.id})
+            print(r.text)
             response = r.json()
             self.log(response)
             self.log("Finished moving motors")
@@ -179,9 +180,22 @@ class BlindsClientNetworkManager(ClientNetworkManager):
             asyncio.create_task(change_state(status))
             return {"success": True}
         
+        async def self_destruct(request):
+
+            self.log("Self-destructing...")
+            # Turn off the motors
+            self.forward_pin.off()
+            self.backward_pin.off()
+            # Delete the client_data.json file
+            os.remove("client_data.json")
+            # Exit the program
+            print("Goodbye world!")
+            machine.reset()
+        
         self.app.route("/status",methods=["POST"])(status_change)
         self.app.route("/api/calibrate/toggle/<string:method>", methods=["GET"])(toggle_calibration)
         self.app.route("/api/calibrate/set", methods=["POST"])(set_calibration)
+        self.app.route("/remove", methods=["POST"])(self_destruct)
         self.log("Methods Registered")
 
 class CameraClientNetworkManager(ClientNetworkManager):

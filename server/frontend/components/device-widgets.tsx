@@ -1,7 +1,8 @@
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
+import { Badge, TrendingUpIcon } from "lucide-react";
 
 export default function DeviceWidgets(props: any) {
   //Implementing the setInterval method
@@ -32,15 +33,12 @@ export default function DeviceWidgets(props: any) {
       {Object.keys(props.devices).length > 0 && (
         <React.Fragment>
           <h3 className="text-3xl mt-4 font-medium mb-4 ml-4">Blinds</h3>
-          <div className="flex flex-wrap gap-4 ml-3">
+          <div className="*:data-[slot=card]:shadow-xs xl:grid-cols-2 5xl:grid-cols-4 grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card lg:px-6">
             {props.devices.blind.map((device: any) => (
-              <Card key={device.location} className="w-[380px]">
-                <CardHeader>
-                  <CardTitle className="text-xl">{device.location}</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-8">
-                  <p>
-                    Device status:{" "}
+              <Card key={device.location} className="@container/card">
+                <CardHeader className="relative">
+                  <CardDescription>{device.location}</CardDescription>
+                  <CardTitle className="@[250px]/card:text-3xl text-2xl font-semibold tabular-nums">
                     {device.status === "offline"
                       ? "Offline"
                       : device.status === "open"
@@ -50,7 +48,35 @@ export default function DeviceWidgets(props: any) {
                       : device.status === "transit_open"
                       ? "Opening..."
                       : "Closing..."}
-                  </p>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-8">
+                  <div className="flex-col items-start gap-1 text-sm">
+                    <div className="text-muted-foreground">
+                        {device.status === "open" || device.status === "close" ? (
+                        (() => {
+                          const now = Date.now();
+                          const lastChange = device.last_state_change * 1000; // convert seconds to ms
+                          const diffMs = now - lastChange;
+                          const diffH = Math.floor(diffMs / (1000 * 60 * 60));
+                          const diffM = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                          const label = device.status === "open" ? "Opened" : "Closed";
+                          if (isNaN(diffM) || isNaN(diffH)) {
+                            return "";
+                          }
+                          if (diffM === 0) {
+                            return <span>{`${label} just now`}</span>;
+                          }
+                          if (diffH === 0) {
+                            return <span>{`${label} for ${diffM}m`}</span>;
+                          }
+                          return <span>{`${label} for ${diffH}h, ${diffM}m`}</span>;
+                        })()
+                        ) : (
+                        <span>&nbsp;</span>
+                        )}
+                    </div>
+                  </div>
                   <div className="flex flex-col w-full gap-2">
                     <Button
                       disabled={
