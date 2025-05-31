@@ -32,6 +32,7 @@ function App() {
         className="row"
         onSubmit={(e) => {
           e.preventDefault();
+          setstatusMsg("");
           upload_data();
         }}
       >

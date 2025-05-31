@@ -12,10 +12,12 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes # t
 from cryptography.hazmat.backends import default_backend #type: ignore
 import queue
 from uuid import uuid4
+# from flask_talisman import Talisman
 
 # Flask app setup
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
+# Talisman(app, content_security_policy=None)  # Disable CSP for simplicity
 
 
 print("\n")
@@ -273,5 +275,5 @@ if __name__ == "__main__":
     threading.Thread(target=start_ping_clients, daemon=True).start()
 
     # Run the Flask server
-    # app.debug = True
+    app.debug = False
     app.run(host="0.0.0.0", port=443,ssl_context=('cert.pem', 'key.pem'))  # Use SSL context if you have cert.pem and key.pem
