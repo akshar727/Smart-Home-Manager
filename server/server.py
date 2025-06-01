@@ -276,4 +276,4 @@ if __name__ == "__main__":
 
     # Run the Flask server
     app.debug = False
-    app.run(host="0.0.0.0", port=443,ssl_context=('cert.pem', 'key.pem'))  # Use SSL context if you have cert.pem and key.pem
+    app.run(host="0.0.0.0", port=80)  # Use SSL context if you have cert.pem and key.pem

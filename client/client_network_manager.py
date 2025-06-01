@@ -57,9 +57,13 @@ class ClientNetworkManager:
         # self.app.route('/log.txt')(log)
         self.app.route("/net/ping", methods=["POST"])(ping_recieve)
 
+        async def log_request(request):
+            print(f"Request from {request.client_addr[0]} to {request.url} with method {request.method}")
+        self.app.before_request(log_request)
+
         # self.app.route("/clearlog")(clear_log)
 
-        CORS(self.app, allowed_origins=[f'http://{server_ip}',f'https://{server_ip}'], allow_credentials=True)
+        CORS(self.app, allowed_origins='*', allow_credentials=True)
         self.log("Created Microdot Application")
 
     def register_methods(self):
@@ -90,7 +94,7 @@ class ClientNetworkManager:
         if self.id is not None:
             k["uuid"] = self.id
         try:
-            r = requests.post(f"https://{self.server_ip}/api/net/id", json=k,timeout=8)
+            r = requests.post(f"http://{self.server_ip}/api/net/id", json=k,timeout=8)
             self.log(r.json())
             self.id = r.json().get('uuid') if self.id is None else self.id
             with open("client_data.json", "w") as f:
@@ -143,7 +147,7 @@ class BlindsClientNetworkManager(ClientNetworkManager):
                 await asyncio.sleep(self.calibrations["open_to_closed"])
                 self.backward_pin.off()
                 self.state = "close"
-            r = requests.post(f"https://{self.server_ip}/api/net/finish", json={"final_status": status, "uuid": self.id})
+            r = requests.post(f"http://{self.server_ip}/api/net/finish", json={"final_status": status, "uuid": self.id})
             print(r.text)
             response = r.json()
             self.log(response)
