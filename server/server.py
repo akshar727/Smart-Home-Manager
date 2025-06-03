@@ -97,6 +97,8 @@ def run_pico(id, status):
 
     if target_device["status"] == "offline":
         return jsonify({"success": False, "err": "Device is offline"})
+    if target_device["status"] == "lock":   
+        return jsonify({"success": False, "err": "Device is locked"})
 
     req_data = {"status": status, "id": target_device["uuid"]}
     target_device["status"] = "transit_open" if status == "open" else "transit_close"
@@ -143,6 +145,49 @@ def remove_device(id):
     return jsonify({"success": True})
 
 
+@app.route("/api/lock/<string:id>", methods=["POST"])
+def lock_device(id):
+    target_device = None
+    for device in available_devices:
+        if device["uuid"] == id:
+            target_device = device
+            break
+
+    if target_device is None:
+        return jsonify({"success": False, "err": "Device not found or not registered"})
+
+    if target_device["status"] == "offline":
+        return jsonify({"success": False, "err": "Device is offline"})
+    if target_device["status"] == "lock":
+        return jsonify({"success": False, "err": "Device is already locked"})
+
+    target_device["old_status"] = target_device["status"]
+    target_device["status"] = "lock"
+
+    return jsonify({"success": True, "message": f"Device {target_device['uuid']} is now locked"})
+
+@app.route("/api/unlock/<string:id>", methods=["POST"])
+def unlock_device(id):
+    target_device = None
+    for device in available_devices:
+        if device["uuid"] == id:
+            target_device = device
+            break
+
+    if target_device is None:
+        return jsonify({"success": False, "err": "Device not found or not registered"})
+
+    if target_device["status"] == "offline":
+        return jsonify({"success": False, "err": "Device is offline"})
+    if target_device["status"] != "lock":
+        return jsonify({"success": False, "err": "Device is not locked"})
+
+    target_device["status"] = target_device["old_status"]
+    target_device["old_status"] = "none"
+
+    return jsonify({"success": True, "message": f"Device {target_device['uuid']} is now unlocked"})
+
+
 @app.route("/api/net/finish", methods=["POST"])
 def finish_status_change():
     data = request.json
@@ -185,7 +230,7 @@ start_time = int(time.time())
 def get_elapsed_time():
     return int(time.time()) - start_time  # Seconds since epoch
 
-
+print(app.url_map)
 
 def format_uptime(seconds):
     days = seconds // (24 * 3600)

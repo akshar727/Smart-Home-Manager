@@ -42,12 +42,14 @@ export default function DeviceWidgets(props: any) {
                     {device.status === "offline"
                       ? "Offline"
                       : device.status === "open"
-                      ? "Opened"
+                      ? "Open"
                       : device.status === "close"
                       ? "Closed"
                       : device.status === "transit_open"
                       ? "Opening..."
-                      : "Closing..."}
+                      : device.status === "transit_close"
+                      ? "Closing..."
+                    : "Calibrating..."}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-8">
@@ -68,9 +70,9 @@ export default function DeviceWidgets(props: any) {
                             return <span>{`${label} just now`}</span>;
                           }
                           if (diffH === 0) {
-                            return <span>{`${label} for ${diffM}m`}</span>;
+                            return <span>{`${label} ${diffM}m ago`}</span>;
                           }
-                          return <span>{`${label} for ${diffH}h, ${diffM}m`}</span>;
+                          return <span>{`${label} ${diffH}h, ${diffM}m ago`}</span>;
                         })()
                         ) : (
                         <span>&nbsp;</span>
@@ -83,7 +85,8 @@ export default function DeviceWidgets(props: any) {
                         device.status === "open" ||
                         device.status === "transit_open" ||
                         device.status === "transit_close" ||
-                        device.status === "offline"
+                        device.status === "offline" ||
+                        device.status === "lock"
                       }
                       onClick={() => fetchOperation(device.uuid, "open")}
                     >
@@ -95,7 +98,8 @@ export default function DeviceWidgets(props: any) {
                         device.status === "close" ||
                         device.status === "transit_open" ||
                         device.status === "transit_close" ||
-                        device.status === "offline"
+                        device.status === "offline" ||
+                        device.status === "lock"
                       }
                       onClick={() => fetchOperation(device.uuid, "close")}
                     >

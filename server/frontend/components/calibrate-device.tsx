@@ -15,6 +15,13 @@ export default function CalibrateDevice(props: any) {
           if (!startTime) {
             setStartTime(Date.now());
           }
+          fetch(`/api/lock/${id}`, {
+            method: "POST"
+          }).then((response) => {
+            if (response.ok) {
+              console.log(`Device ${id} is now locked for calibration.`);
+            }
+          });
         } else {
           alert("Failed to toggle motor. Please try again.");
         }
@@ -42,7 +49,14 @@ export default function CalibrateDevice(props: any) {
       })
         .then((res) => {
           if (res.ok) {
-            alert(`Calibration finished. Duration: ${elapsedTime} seconds.`);
+            alert(`Calibration finished. Set to: ${elapsedTime} seconds.`);
+            fetch(`/api/unlock/${calibrating.id}`, {
+              method: "POST",
+            }).then((response) => {
+              if (response.ok) {
+                console.log(`Device ${calibrating.id} is now unlocked.`);
+              }
+            });
           } else {
             alert("Failed to finish calibration. Please try again.");
           }
@@ -72,7 +86,9 @@ export default function CalibrateDevice(props: any) {
                     className="op-btn"
                     onClick={() => startCalibration(device.uuid, "open")}
                     disabled={
-                      calibrating !== null || device.status === "offline"
+                      calibrating !== null ||
+                      device.status === "offline" ||
+                      device.status === "lock"
                     }
                   >
                     Calibrate Opening
@@ -81,7 +97,9 @@ export default function CalibrateDevice(props: any) {
                     className="op-btn"
                     onClick={() => startCalibration(device.uuid, "close")}
                     disabled={
-                      calibrating !== null || device.status === "offline"
+                      calibrating !== null ||
+                      device.status === "offline" ||
+                      device.status === "lock"
                     }
                   >
                     Calibrate Closing
@@ -104,9 +122,9 @@ export default function CalibrateDevice(props: any) {
             blinds for{" "}
             {calibrating.operation === "open" ? " Opening" : " Closing"}.
           </p>
-          <button className="op-btn" onClick={stopCalibration}>
+          <Button className="op-btn" onClick={stopCalibration}>
             Stop
-          </button>
+          </Button>
         </div>
       )}
     </>
