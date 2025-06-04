@@ -14,6 +14,13 @@ key.pem
 wifi.json
 Blinds Manager.code-workspace
 blind_client_pico_old.py
+404.html
+file.svg
+globe.svg
+index.txt
+next.svg
+vercel.svg
+window.svg
 
 # Distribution / packaging
 .Python
@@ -146,6 +153,8 @@ venv.bak/
 
 # mkdocs documentation
 /site
+_next/
+
 
 # mypy
 .mypy_cache/

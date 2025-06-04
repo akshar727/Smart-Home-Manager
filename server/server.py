@@ -181,9 +181,10 @@ def unlock_device(id):
         return jsonify({"success": False, "err": "Device is offline"})
     if target_device["status"] != "lock":
         return jsonify({"success": False, "err": "Device is not locked"})
-
     target_device["status"] = target_device["old_status"]
     target_device["old_status"] = "none"
+    if request.json.get("force_status") is not None:
+        target_device["status"] = request.json["force_status"]
 
     return jsonify({"success": True, "message": f"Device {target_device['uuid']} is now unlocked"})
 

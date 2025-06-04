@@ -16,7 +16,7 @@ export default function CalibrateDevice(props: any) {
             setStartTime(Date.now());
           }
           fetch(`/api/lock/${id}`, {
-            method: "POST"
+            method: "POST",
           }).then((response) => {
             if (response.ok) {
               console.log(`Device ${id} is now locked for calibration.`);
@@ -52,6 +52,10 @@ export default function CalibrateDevice(props: any) {
             alert(`Calibration finished. Set to: ${elapsedTime} seconds.`);
             fetch(`/api/unlock/${calibrating.id}`, {
               method: "POST",
+              body: JSON.stringify({
+                force_status: calibrating.operation,
+              }),
+              headers: { "Content-Type": "application/json" },
             }).then((response) => {
               if (response.ok) {
                 console.log(`Device ${calibrating.id} is now unlocked.`);
