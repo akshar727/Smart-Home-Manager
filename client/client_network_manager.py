@@ -16,7 +16,7 @@ import machine
 
 
 class ClientNetworkManager:
-    def __init__(self, _type, location, state, server_ip, wlan_ssid, wlan_pwd,self_id=None) -> None:
+    def __init__(self, _type, location, state, server_ip, wlan_ssid, wlan_pwd,self_id) -> None:
         self.type = _type
         self.location = location
         self.state = state
@@ -115,7 +115,7 @@ class ClientNetworkManager:
 
 class BlindsClientNetworkManager(ClientNetworkManager):
     def __init__(self,location, state, server_ip, wlan_ssid, wlan_pwd, open_calibration: int, close_calibration: int,self_id=None) -> None:
-        super().__init__('blind',location, state, server_ip, wlan_ssid, wlan_pwd,self_id=None)
+        super().__init__('blind',location, state, server_ip, wlan_ssid, wlan_pwd,self_id)
         self.calibrations: dict[str, int] = {
             "closed_to_open": open_calibration,
             "open_to_closed": close_calibration
@@ -207,12 +207,12 @@ class BlindsClientNetworkManager(ClientNetworkManager):
         self.app.route("/remove", methods=["POST"])(self_destruct)
         self.log("Methods Registered")
 
-class CameraClientNetworkManager(ClientNetworkManager):
-    def __init__(self,location, server_ip, wlan_ssid, wlan_pwd) -> None:
-        super().__init__('camera',location, None, server_ip, wlan_ssid, wlan_pwd)
-        self.register_methods()
+# class CameraClientNetworkManager(ClientNetworkManager):
+#     def __init__(self,location, server_ip, wlan_ssid, wlan_pwd) -> None:
+#         super().__init__('camera',location, None, server_ip, wlan_ssid, wlan_pwd)
+#         self.register_methods()
 
-        self.app.run(host=self.client_ip, port=80)
+#         self.app.run(host=self.client_ip, port=80)
     
-    def register_methods(self):
-        pass
+#     def register_methods(self):
+#         pass

@@ -31,6 +31,7 @@ if isfile(fname):
     with open(fname) as f:
         client_data = json.load(f)
     self_id = client_data.get("id", None)
+    print(self_id)
     server_ip = client_data["server_ip"]
 
 print("Setup: ",setup)

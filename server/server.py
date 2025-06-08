@@ -58,6 +58,8 @@ def register():
             if device["status"] == "transit_open" or device["status"] == "transit_close":
                 # somehow a bug, but just set it to its finished state
                 device["status"] = "open" if data["status"] == "transit_open" else "close"
+            with open(devices_name, "w") as f:
+                json.dump({"devices": available_devices}, f)
             return jsonify({"success": True, "uuid": device["uuid"]})
         elif device["uuid"] == data["uuid"]:
             print(f"The existing device with ID {device['uuid']} has re-registered under a new IP...")
@@ -65,6 +67,8 @@ def register():
                 device["status"] = device["old_status"]
                 device["old_status"] = "none"
             device["ip"] = request.remote_addr
+            with open(devices_name, "w") as f:
+                json.dump({"devices": available_devices}, f)
             return jsonify({"success": True, "uuid": device["uuid"]})
 
     device = {

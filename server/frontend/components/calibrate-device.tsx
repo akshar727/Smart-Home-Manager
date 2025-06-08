@@ -75,7 +75,9 @@ export default function CalibrateDevice(props: any) {
   return (
     <>
       {Object.keys(props.devices).length === 0 && (
-        <p>No devices available for calibration.</p>
+        <p className="text-lg mt-4 mb-4 ml-4">
+          No devices available for calibration.
+        </p>
       )}
       {Object.keys(props.devices).length > 0 && (
         <div className="flex flex-wrap gap-4 ml-3 mt-3">
